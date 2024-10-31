@@ -1,0 +1,335 @@
+
+                            < M A T L A B (R) >
+                  Copyright 1984-2021 The MathWorks, Inc.
+             R2021a Update 4 (9.10.0.1710957) 64-bit (glnxa64)
+                                July 1, 2021
+
+[Warning: Unable to load Toolbox Path Cache
+/home/leah/.matlab/R2021a/toolbox_cache-9.10.0-2544658811-glnxa64.xml. The
+cache file is not in the correct format. It will be regenerated upon quitting
+MATLAB.] 
+
+                            < M A T L A B (R) >
+                  Copyright 1984-2021 The MathWorks, Inc.
+             R2021a Update 4 (9.10.0.1710957) 64-bit (glnxa64)
+                                July 1, 2021
+
+
+                            < M A T L A B (R) >
+                  Copyright 1984-2021 The MathWorks, Inc.
+             R2021a Update 4 (9.10.0.1710957) 64-bit (glnxa64)
+                                July 1, 2021
+
+
+                            < M A T L A B (R) >
+                  Copyright 1984-2021 The MathWorks, Inc.
+             R2021a Update 4 (9.10.0.1710957) 64-bit (glnxa64)
+                                July 1, 2021
+
+
+                            < M A T L A B (R) >
+                  Copyright 1984-2021 The MathWorks, Inc.
+             R2021a Update 4 (9.10.0.1710957) 64-bit (glnxa64)
+                                July 1, 2021
+
+
+                            < M A T L A B (R) >
+                  Copyright 1984-2021 The MathWorks, Inc.
+             R2021a Update 4 (9.10.0.1710957) 64-bit (glnxa64)
+                                July 1, 2021
+
+
+                            < M A T L A B (R) >
+                  Copyright 1984-2021 The MathWorks, Inc.
+             R2021a Update 4 (9.10.0.1710957) 64-bit (glnxa64)
+                                July 1, 2021
+
+
+                            < M A T L A B (R) >
+                  Copyright 1984-2021 The MathWorks, Inc.
+             R2021a Update 4 (9.10.0.1710957) 64-bit (glnxa64)
+                                July 1, 2021
+
+
+                            < M A T L A B (R) >
+                  Copyright 1984-2021 The MathWorks, Inc.
+             R2021a Update 4 (9.10.0.1710957) 64-bit (glnxa64)
+                                July 1, 2021
+
+
+                            < M A T L A B (R) >
+                  Copyright 1984-2021 The MathWorks, Inc.
+             R2021a Update 4 (9.10.0.1710957) 64-bit (glnxa64)
+                                July 1, 2021
+
+
+                            < M A T L A B (R) >
+                  Copyright 1984-2021 The MathWorks, Inc.
+             R2021a Update 4 (9.10.0.1710957) 64-bit (glnxa64)
+                                July 1, 2021
+
+
+                            < M A T L A B (R) >
+                  Copyright 1984-2021 The MathWorks, Inc.
+             R2021a Update 4 (9.10.0.1710957) 64-bit (glnxa64)
+                                July 1, 2021
+
+ 
+For online documentation, see https://www.mathworks.com/support
+For product information, visit www.mathworks.com.
+ 
+ 
+ 
+For online documentation, see https://www.mathworks.com/support
+For online documentation, see https://www.mathworks.com/support
+For product information, visit www.mathworks.com.
+For product information, visit www.mathworks.com.
+ 
+ 
+ 
+ 
+For online documentation, see https://www.mathworks.com/support
+For online documentation, see https://www.mathworks.com/support
+For product information, visit www.mathworks.com.
+For product information, visit www.mathworks.com.
+ 
+ 
+ 
+For online documentation, see https://www.mathworks.com/support
+For product information, visit www.mathworks.com.
+ 
+ 
+For online documentation, see https://www.mathworks.com/support
+For product information, visit www.mathworks.com.
+ 
+ 
+For online documentation, see https://www.mathworks.com/support
+For product information, visit www.mathworks.com.
+ 
+ 
+For online documentation, see https://www.mathworks.com/support
+For product information, visit www.mathworks.com.
+ 
+ 
+For online documentation, see https://www.mathworks.com/support
+For product information, visit www.mathworks.com.
+ 
+ 
+For online documentation, see https://www.mathworks.com/support
+For product information, visit www.mathworks.com.
+ 
+ 
+For online documentation, see https://www.mathworks.com/support
+For product information, visit www.mathworks.com.
+ 
+[Warning: cfg structures are not the same, be very cautious!] 
+[> In savemat (line 48)
+In cfg_defaults (line 520)
+In RunCCA (line 45)] 
+cfg.env.fileend with different value
+cfg.env.seed.model with different value
+Associative effect 1
+
+Significant results found!
+
+[Warning: cfg structures are not the same, be very cautious!] 
+[> In savemat (line 48)
+In cfg_defaults (line 520)
+In RunCCA (line 45)] 
+cfg.env.fileend with different value
+cfg.env.seed.model with different value
+Associative effect 1
+Associative effect 2
+
+No significant results found at this level!
+
+Elapsed time is 11.174373 seconds.
+>> 
+Significant results found!
+
+Associative effect 2
+[Warning: cfg structures are not the same, be very cautious!] 
+[> In savemat (line 48)
+In cfg_defaults (line 520)
+In RunCCA (line 45)] 
+[Warning: cfg structures are not the same, be very cautious!] 
+[> In savemat (line 48)
+In cfg_defaults (line 520)
+In RunCCA (line 45)] 
+cfg.env.fileend with different value
+cfg.env.seed.model with different value
+cfg.env.fileend with different value
+cfg.env.seed.model with different value
+Associative effect 1
+Associative effect 1
+[Warning: cfg structures are not the same, be very cautious!] 
+[> In savemat (line 48)
+In cfg_defaults (line 520)
+In RunCCA (line 45)] 
+cfg.env.fileend with different value
+cfg.env.seed.model with different value
+Associative effect 1
+[Warning: cfg structures are not the same, be very cautious!] 
+[> In savemat (line 48)
+In cfg_defaults (line 520)
+In RunCCA (line 45)] 
+[Warning: cfg structures are not the same, be very cautious!] 
+[> In savemat (line 48)
+In cfg_defaults (line 520)
+In RunCCA (line 45)] 
+cfg.env.fileend with different value
+cfg.env.fileend with different value
+cfg.env.seed.model with different value
+cfg.env.seed.model with different value
+Associative effect 1
+Associative effect 1
+
+No significant results found at this level!
+
+[Warning: cfg structures are not the same, be very cautious!] 
+[> In savemat (line 48)
+In cfg_defaults (line 520)
+In RunCCA (line 45)] 
+[Warning: cfg structures are not the same, be very cautious!] 
+[> In savemat (line 48)
+In cfg_defaults (line 520)
+In RunCCA (line 45)] 
+cfg.env.fileend with different value
+cfg.env.fileend with different value
+cfg.env.seed.model with different value
+cfg.env.seed.model with different value
+
+Significant results found!
+
+
+Significant results found!
+
+Associative effect 1
+Associative effect 1
+Elapsed time is 10.735670 seconds.
+>> Associative effect 2
+Associative effect 2
+
+Significant results found!
+
+[Warning: cfg structures are not the same, be very cautious!] 
+[> In savemat (line 48)
+In cfg_defaults (line 520)
+In RunCCA (line 45)] 
+[Warning: cfg structures are not the same, be very cautious!] 
+[> In savemat (line 48)
+In cfg_defaults (line 520)
+In RunCCA (line 45)] 
+
+Significant results found!
+
+
+Significant results found!
+
+cfg.env.fileend with different value
+cfg.env.seed.model with different value
+cfg.env.fileend with different value
+cfg.env.seed.model with different value
+Associative effect 1
+Associative effect 1
+
+No significant results found at this level!
+
+
+No significant results found at this level!
+
+
+Significant results found!
+
+
+Significant results found!
+
+Elapsed time is 5.897038 seconds.
+>> Elapsed time is 6.028580 seconds.
+>> Associative effect 2
+Associative effect 2
+Associative effect 2
+Associative effect 2
+Associative effect 2
+[Warning: cfg structures are not the same, be very cautious!] 
+[> In savemat (line 48)
+In cfg_defaults (line 520)
+In RunCCA (line 45)] 
+
+Significant results found!
+
+
+No significant results found at this level!
+
+cfg.env.fileend with different value
+cfg.env.seed.model with different value
+Associative effect 1
+Elapsed time is 7.009408 seconds.
+>> 
+Significant results found!
+
+
+No significant results found at this level!
+
+
+No significant results found at this level!
+
+Elapsed time is 7.018173 seconds.
+Elapsed time is 7.018235 seconds.
+>> >> 
+No significant results found at this level!
+
+
+No significant results found at this level!
+
+Elapsed time is 6.868720 seconds.
+Elapsed time is 6.868731 seconds.
+>> >> Associative effect 2
+Associative effect 2
+
+No significant results found at this level!
+
+
+Significant results found!
+
+Elapsed time is 6.468859 seconds.
+>> 
+No significant results found at this level!
+
+Elapsed time is 6.905513 seconds.
+>> Associative effect 2
+
+No significant results found at this level!
+
+Elapsed time is 6.369509 seconds.
+>> [Warning: cfg structures are not the same, be very cautious!] 
+[> In savemat (line 48)
+In cfg_defaults (line 520)
+In RunCCA (line 45)] 
+cfg.env.fileend with different value
+cfg.env.seed.model with different value
+Associative effect 1
+[Warning: cfg structures are not the same, be very cautious!] 
+[> In savemat (line 48)
+In cfg_defaults (line 520)
+In RunCCA (line 45)] 
+cfg.env.fileend with different value
+cfg.env.seed.model with different value
+Associative effect 1
+
+Significant results found!
+
+Associative effect 2
+
+Significant results found!
+
+
+No significant results found at this level!
+
+Elapsed time is 7.752121 seconds.
+>> Associative effect 2
+
+No significant results found at this level!
+
+Elapsed time is 9.577390 seconds.
+>> 

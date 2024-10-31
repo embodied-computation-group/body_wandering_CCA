@@ -1,0 +1,429 @@
+{
+    "mindwandering_english_Metadata": {
+        "Description": "Mindwandering survey 22 item responses and reaction times (post-restingstate (i.e., 'RS_MW'... includes VMP1 & VMP2) and post-movie (i.e., 'MOV_MW'... includes VMP2 only)) & post-movie emotion/attractiveness ratings (i,e., 'MOV_Rating'... VMP2 only)"
+    },
+    "RS_MW_1": {
+        "Description": "'My thoughts involved future events.' (Future)",
+        "Units": "sliding scale 0-100 (0 = Not at all, 100 = Completely)"
+    },
+    "RS_MW_2": {
+        "Description": "'My thoughts involved past events.' (Past)",
+        "Units": "sliding scale 0-100 (0 = Not at all, 100 = Completely)"
+    },
+    "RS_MW_3": {
+        "Description": "'My thoughts involved myself.' (Self)",
+        "Units": "sliding scale 0-100 (0 = Not at all, 100 = Completely)"
+    },
+    "RS_MW_4": {
+        "Description": "'My thoughts involved other people.' (Other)",
+        "Units": "sliding scale 0-100 (0 = Not at all, 100 = Completely)"
+    },
+    "RS_MW_5": {
+        "Description": "'My thoughts were positive.' (Positive)",
+        "Units": "sliding scale 0-100 (0 = Not at all, 100 = Completely)"
+    },
+    "RS_MW_6": {
+        "Description": "'My thoughts were negative.' (Negative)",
+        "Units": "sliding scale 0-100 (0 = Not at all, 100 = Completely)"
+    },
+    "RS_MW_7": {
+        "Description": "'My thoughts were in the form of words.' (Words)",
+        "Units": "sliding scale 0-100 (0 = Not at all, 100 = Completely)"
+    },
+    "RS_MW_8": {
+        "Description": "'My thoughts were vivid as if I was there.' (Vivid)",
+        "Units": "sliding scale 0-100 (0 = Not at all, 100 = Completely)"
+    },
+    "RS_MW_9": {
+        "Description": "'My thoughts were detailed and specific.' (Vague)",
+        "Units": "sliding scale 0-100 (0 = Not at all, 100 = Completely)"
+    },
+    "RS_MW_10": {
+        "Description": "'My thoughts were:' (Spontaneous)",
+        "Units": "sliding scale 0-100 (0 = Spontaneous, 100 = Deliberate)"
+    },   
+    "RS_MW_11": {
+        "Description": "'My thoughts were focused.' (Focus)",
+        "Units": "sliding scale 0-100 (0 = Not at all, 100 = Completely)"
+    },    
+    "RS_MW_12": {
+        "Description": "'My thoughts were repetitive.' (Ruminate)",
+        "Units": "sliding scale 0-100 (0 = Not at all, 100 = Completely)"
+    },    
+    "RS_MW_13": {
+        "Description": "'My thoughts were related to:' (Temporal distance)",
+        "Units": "sliding scale 0-100 (0 = The here and now, 100 = A more distant time)"
+    },    
+    "RS_MW_14": {
+        "Description": "'My thoughts were in the form of images.' (Images)",
+        "Units": "sliding scale 0-100 (0 = Not at all, 100 = Completely)"
+    },    
+    "RS_MW_15": {
+        "Description": "'In general I felt more:' (Arousal)",
+        "Units": "sliding scale 0-100 (0 = Sleepy, 100 = Alert)"
+    },    
+    "RS_MW_16": {
+        "Description": "'My thoughts were about my body.' (Body)",
+        "Units": "sliding scale 0-100 (0 = Not at all, 100 = Completely)"
+    },    
+    "RS_MW_17": {
+        "Description": "'My thoughts were about my breathing.' (Breath)",
+        "Units": "sliding scale 0-100 (0 = Not at all, 100 = Completely)"
+    },    
+    "RS_MW_18": {
+        "Description": "'My thoughts were about my heartbeat.' (Heart)",
+        "Units": "sliding scale 0-100 (0 = Not at all, 100 = Completely)"
+    },    
+    "RS_MW_19": {
+        "Description": "'My thoughts were about moving.' (Movement)",
+        "Units": "sliding scale 0-100 (0 = Not at all, 100 = Completely)"
+    },    
+    "RS_MW_20": {
+        "Description": "'My thoughts were about my bladder.' (Bladder)",
+        "Units": "sliding scale 0-100 (0 = Not at all, 100 = Completely)"
+    },    
+    "RS_MW_21": {
+        "Description": "'My thoughts were about my skin.' (Skin)",
+        "Units": "sliding scale 0-100 (0 = Not at all, 100 = Completely)"
+    },    
+    "RS_MW_22": {
+        "Description": "'My thoughts were about my stomach.' (Stomach)",
+        "Units": "sliding scale 0-100 (0 = Not at all, 100 = Completely)"
+    },
+    "RS_MW_RT_1": {
+        "Description": "Reaction time for: 'My thoughts involved future events.' (Future)",
+        "Units": "Reaction time in milliseconds"
+    },
+    "RS_MW_RT_2": {
+        "Description": "Reaction time for: 'My thoughts involved past events.' (Past)",
+        "Units": "Reaction time in milliseconds"
+    },
+    "RS_MW_RT_3": {
+        "Description": "Reaction time for: 'My thoughts involved myself.' (Self)",
+        "Units": "Reaction time in milliseconds"
+    },
+    "RS_MW_RT_4": {
+        "Description": "Reaction time for: 'My thoughts involved other people.' (Other)",
+        "Units": "Reaction time in milliseconds"
+    },
+    "RS_MW_RT_5": {
+        "Description": "Reaction time for: 'My thoughts were positive.' (Positive)",
+        "Units": "Reaction time in milliseconds"
+    },
+    "RS_MW_RT_6": {
+        "Description": "Reaction time for: 'My thoughts were negative.' (Negative)",
+        "Units": "sliding scale 0-100 (0 = Not at all, 100 = Completely)"
+    },
+    "RS_MW_RT_7": {
+        "Description": "Reaction time for: 'My thoughts were in the form of words.' (Words)",
+        "Units": "Reaction time in milliseconds"
+    },
+    "RS_MW_RT_8": {
+        "Description": "Reaction time for: 'My thoughts were vivid as if I was there.' (Vivid)",
+        "Units": "Reaction time in milliseconds"
+    },
+    "RS_MW_RT_9": {
+        "Description": "Reaction time for: 'My thoughts were detailed and specific.' (Vague)",
+        "Units": "Reaction time in milliseconds"
+    },
+    "RS_MW_RT_10": {
+        "Description": "Reaction time for: 'My thoughts were:' (Spontaneous)",
+        "Units": "Reaction time in milliseconds"
+    },   
+    "RS_MW_RT_11": {
+        "Description": "Reaction time for: 'My thoughts were focused.' (Focus)",
+        "Units": "Reaction time in milliseconds"
+    },    
+    "RS_MW_RT_12": {
+        "Description": "Reaction time for: 'My thoughts were repetitive.' (Ruminate)",
+        "Units": "Reaction time in milliseconds"
+    },    
+    "RS_MW_RT_13": {
+        "Description": "Reaction time for: 'My thoughts were related to:' (Temporal distance)",
+        "Units": "Reaction time in milliseconds"
+    },    
+    "RS_MW_RT_14": {
+        "Description": "Reaction time for: 'My thoughts were in the form of images.' (Images)",
+        "Units": "Reaction time in milliseconds"
+    },    
+    "RS_MW_RT_15": {
+        "Description": "Reaction time for: 'In general I felt more:' (Arousal)",
+        "Units": "Reaction time in milliseconds"
+    },    
+    "RS_MW_RT_16": {
+        "Description": "Reaction time for: 'My thoughts were about my body.' (Body)",
+        "Units": "Reaction time in milliseconds"
+    },    
+    "RS_MW_RT_17": {
+        "Description": "Reaction time for: 'My thoughts were about my breathing.' (Breath)",
+        "Units": "Reaction time in milliseconds"
+    },    
+    "RS_MW_RT_18": {
+        "Description": "Reaction time for: 'My thoughts were about my heartbeat.' (Heart)",
+        "Units": "Reaction time in milliseconds"
+    },    
+    "RS_MW_RT_19": {
+        "Description": "Reaction time for: 'My thoughts were about moving.' (Movement)",
+        "Units": "Reaction time in milliseconds"
+    },    
+    "RS_MW_RT_20": {
+        "Description": "Reaction time for: 'My thoughts were about my bladder.' (Bladder)",
+        "Units": "Reaction time in milliseconds"
+    },    
+    "RS_MW_RT_21": {
+        "Description": "Reaction time for: 'My thoughts were about my skin.' (Skin)",
+        "Units": "Reaction time in milliseconds"
+    },    
+    "RS_MW_RT_22": {
+        "Description": "Reaction time for: 'My thoughts were about my stomach.' (Stomach)",
+        "Units": "Reaction time in milliseconds"
+    },
+    "MOV_MW_1": {
+        "Description": "'My thoughts involved future events.' (Future)",
+        "Units": "sliding scale 0-100 (0 = Not at all, 100 = Completely)"
+    },
+    "MOV_MW_2": {
+        "Description": "'My thoughts involved past events.' (Past)",
+        "Units": "sliding scale 0-100 (0 = Not at all, 100 = Completely)"
+    },
+    "MOV_MW_3": {
+        "Description": "'My thoughts involved myself.' (Self)",
+        "Units": "sliding scale 0-100 (0 = Not at all, 100 = Completely)"
+    },
+    "MOV_MW_4": {
+        "Description": "'My thoughts involved other people.' (Other)",
+        "Units": "sliding scale 0-100 (0 = Not at all, 100 = Completely)"
+    },
+    "MOV_MW_5": {
+        "Description": "'My thoughts were positive.' (Positive)",
+        "Units": "sliding scale 0-100 (0 = Not at all, 100 = Completely)"
+    },
+    "MOV_MW_6": {
+        "Description": "'My thoughts were negative.' (Negative)",
+        "Units": "sliding scale 0-100 (0 = Not at all, 100 = Completely)"
+    },
+    "MOV_MW_7": {
+        "Description": "'My thoughts were in the form of words.' (Words)",
+        "Units": "sliding scale 0-100 (0 = Not at all, 100 = Completely)"
+    },
+    "MOV_MW_8": {
+        "Description": "'My thoughts were vivid as if I was there.' (Vivid)",
+        "Units": "sliding scale 0-100 (0 = Not at all, 100 = Completely)"
+    },
+    "MOV_MW_9": {
+        "Description": "'My thoughts were detailed and specific.' (Vague)",
+        "Units": "sliding scale 0-100 (0 = Not at all, 100 = Completely)"
+    },
+    "MOV_MW_10": {
+        "Description": "'My thoughts were:' (Spontaneous)",
+        "Units": "sliding scale 0-100 (0 = Spontaneous, 100 = Deliberate)"
+    },   
+    "MOV_MW_11": {
+        "Description": "'My thoughts were focused.' (Focus)",
+        "Units": "sliding scale 0-100 (0 = Not at all, 100 = Completely)"
+    },    
+    "MOV_MW_12": {
+        "Description": "'My thoughts were repetitive.' (Ruminate)",
+        "Units": "sliding scale 0-100 (0 = Not at all, 100 = Completely)"
+    },    
+    "MOV_MW_13": {
+        "Description": "'My thoughts were related to:' (Temporal distance)",
+        "Units": "sliding scale 0-100 (0 = The here and now, 100 = A more distant time)"
+    },    
+    "MOV_MW_14": {
+        "Description": "'My thoughts were in the form of images.' (Images)",
+        "Units": "sliding scale 0-100 (0 = Not at all, 100 = Completely)"
+    },    
+    "MOV_MW_15": {
+        "Description": "'In general I felt more:' (Arousal)",
+        "Units": "sliding scale 0-100 (0 = Sleepy, 100 = Alert)"
+    },    
+    "MOV_MW_16": {
+        "Description": "'My thoughts were about my body.' (Body)",
+        "Units": "sliding scale 0-100 (0 = Not at all, 100 = Completely)"
+    },    
+    "MOV_MW_17": {
+        "Description": "'My thoughts were about my breathing.' (Breath)",
+        "Units": "sliding scale 0-100 (0 = Not at all, 100 = Completely)"
+    },    
+    "MOV_MW_18": {
+        "Description": "'My thoughts were about my heartbeat.' (Heart)",
+        "Units": "sliding scale 0-100 (0 = Not at all, 100 = Completely)"
+    },    
+    "MOV_MW_19": {
+        "Description": "'My thoughts were about moving.' (Movement)",
+        "Units": "sliding scale 0-100 (0 = Not at all, 100 = Completely)"
+    },    
+    "MOV_MW_20": {
+        "Description": "'My thoughts were about my bladder.' (Bladder)",
+        "Units": "sliding scale 0-100 (0 = Not at all, 100 = Completely)"
+    },    
+    "MOV_MW_21": {
+        "Description": "'My thoughts were about my skin.' (Skin)",
+        "Units": "sliding scale 0-100 (0 = Not at all, 100 = Completely)"
+    },    
+    "MOV_MW_22": {
+        "Description": "'My thoughts were about my stomach.' (Stomach)",
+        "Units": "sliding scale 0-100 (0 = Not at all, 100 = Completely)"
+    },
+    "MOV_MW_RT_1": {
+        "Description": "Reaction time for: 'My thoughts involved future events.' (Future)",
+        "Units": "Reaction time in milliseconds"
+    },
+    "MOV_MW_RT_2": {
+        "Description": "Reaction time for: 'My thoughts involved past events.' (Past)",
+        "Units": "Reaction time in milliseconds"
+    },
+    "MOV_MW_RT_3": {
+        "Description": "Reaction time for: 'My thoughts involved myself.' (Self)",
+        "Units": "Reaction time in milliseconds"
+    },
+    "MOV_MW_RT_4": {
+        "Description": "Reaction time for: 'My thoughts involved other people.' (Other)",
+        "Units": "Reaction time in milliseconds"
+    },
+    "MOV_MW_RT_5": {
+        "Description": "Reaction time for: 'My thoughts were positive.' (Positive)",
+        "Units": "Reaction time in milliseconds"
+    },
+    "MOV_MW_RT_6": {
+        "Description": "Reaction time for: 'My thoughts were negative.' (Negative)",
+        "Units": "sliding scale 0-100 (0 = Not at all, 100 = Completely)"
+    },
+    "MOV_MW_RT_7": {
+        "Description": "Reaction time for: 'My thoughts were in the form of words.' (Words)",
+        "Units": "Reaction time in milliseconds"
+    },
+    "MOV_MW_RT_8": {
+        "Description": "Reaction time for: 'My thoughts were vivid as if I was there.' (Vivid)",
+        "Units": "Reaction time in milliseconds"
+    },
+    "MOV_MW_RT_9": {
+        "Description": "Reaction time for: 'My thoughts were detailed and specific.' (Vague)",
+        "Units": "Reaction time in milliseconds"
+    },
+    "MOV_MW_RT_10": {
+        "Description": "Reaction time for: 'My thoughts were:' (Spontaneous)",
+        "Units": "Reaction time in milliseconds"
+    },   
+    "MOV_MW_RT_11": {
+        "Description": "Reaction time for: 'My thoughts were focused.' (Focus)",
+        "Units": "Reaction time in milliseconds"
+    },    
+    "MOV_MW_RT_12": {
+        "Description": "Reaction time for: 'My thoughts were repetitive.' (Ruminate)",
+        "Units": "Reaction time in milliseconds"
+    },    
+    "MOV_MW_RT_13": {
+        "Description": "Reaction time for: 'My thoughts were related to:' (Temporal distance)",
+        "Units": "Reaction time in milliseconds"
+    },    
+    "MOV_MW_RT_14": {
+        "Description": "Reaction time for: 'My thoughts were in the form of images.' (Images)",
+        "Units": "Reaction time in milliseconds"
+    },    
+    "MOV_MW_RT_15": {
+        "Description": "Reaction time for: 'In general I felt more:' (Arousal)",
+        "Units": "Reaction time in milliseconds"
+    },    
+    "MOV_MW_RT_16": {
+        "Description": "Reaction time for: 'My thoughts were about my body.' (Body)",
+        "Units": "Reaction time in milliseconds"
+    },    
+    "MOV_MW_RT_17": {
+        "Description": "Reaction time for: 'My thoughts were about my breathing.' (Breath)",
+        "Units": "Reaction time in milliseconds"
+    },    
+    "MOV_MW_RT_18": {
+        "Description": "Reaction time for: 'My thoughts were about my heartbeat.' (Heart)",
+        "Units": "Reaction time in milliseconds"
+    },    
+    "MOV_MW_RT_19": {
+        "Description": "Reaction time for: 'My thoughts were about moving.' (Movement)",
+        "Units": "Reaction time in milliseconds"
+    },    
+    "MOV_MW_RT_20": {
+        "Description": "Reaction time for: 'My thoughts were about my bladder.' (Bladder)",
+        "Units": "Reaction time in milliseconds"
+    },    
+    "MOV_MW_RT_21": {
+        "Description": "Reaction time for: 'My thoughts were about my skin.' (Skin)",
+        "Units": "Reaction time in milliseconds"
+    },    
+    "MOV_MW_RT_22": {
+        "Description": "Reaction time for: 'My thoughts were about my stomach.' (Stomach)",
+        "Units": "Reaction time in milliseconds"
+    },
+    "MOV_Rating_1": {
+        "Description": "'During the movie, rate the maximum intensity you felt for each descriptor: Anxious' (Anxious)",
+        "Units": "sliding scale 0-100 (0 = Not at all, 100 = Very much so)"
+    },
+    "MOV_Rating_2": {
+        "Description": "'During the movie, rate the maximum intensity you felt for each descriptor: Excited' (Excited)",
+        "Units": "sliding scale 0-100 (0 = Not at all, 100 = Very much so)"
+    },
+    "MOV_Rating_3": {
+        "Description": "'During the movie, rate the maximum intensity you felt for each descriptor: Scared' (Scared)",
+        "Units": "sliding scale 0-100 (0 = Not at all, 100 = Very much so)"
+    },
+    "MOV_Rating_4": {
+        "Description": "'During the movie, rate the maximum intensity you felt for each descriptor: Happy' (Happy)",
+        "Units": "sliding scale 0-100 (0 = Not at all, 100 = Very much so)"
+    },
+    "MOV_Rating_5": {
+        "Description": "'During the movie, rate the maximum intensity you felt for each descriptor: Worried' (Worried)",
+        "Units": "sliding scale 0-100 (0 = Not at all, 100 = Very much so)"
+    },
+    "MOV_Rating_6": {
+        "Description": "During the movie, rate the maximum intensity you felt for each descriptor: Bored' (Bored)",
+        "Units": "sliding scale 0-100 (0 = Not at all, 100 = Very much so)"
+    },
+    "MOV_Rating_7": {
+        "Description": "'During the movie, rate the maximum intensity you felt for each descriptor: Aroused' (Aroused)",
+        "Units": "sliding scale 0-100 (0 = Not at all, 100 = Very much so)"
+    },
+    "MOV_Rating_8": {
+        "Description": "'During the movie, how afraid of heights did you feel?' (Heights)",
+        "Units": "sliding scale 0-100 (0 = Not at all, 100 = Very much so)"
+    },
+    "MOV_Rating_9": {
+        "Description": "'How attractive did you find the people in the movie?' (Attractive)",
+        "Units": "sliding scale 0-100 (0 = Not at all, 100 = Very much so)"
+    },
+    "MOV_Rating_RT_1": {
+        "Description": "Reaction time for: 'During the movie, rate the maximum intensity you felt for each descriptor: Anxious' (Anxious)",
+        "Units": "Reaction time in milliseconds"
+    },
+    "MOV_Rating_RT_2": {
+        "Description": "Reaction time for: 'During the movie, rate the maximum intensity you felt for each descriptor: Excited' (Excited)",
+        "Units": "Reaction time in milliseconds"
+    },
+    "MOV_Rating_RT_3": {
+        "Description": "Reaction time for: 'During the movie, rate the maximum intensity you felt for each descriptor: Scared' (Scared)",
+        "Units": "Reaction time in milliseconds"
+    },
+    "MOV_Rating_RT_4": {
+        "Description": "Reaction time for: 'During the movie, rate the maximum intensity you felt for each descriptor: Happy' (Happy)",
+        "Units": "Reaction time in milliseconds"
+    },
+    "MOV_Rating_RT_5": {
+        "Description": "Reaction time for: 'During the movie, rate the maximum intensity you felt for each descriptor: Worried' (Worried)",
+        "Units": "Reaction time in milliseconds"
+    },
+    "MOV_Rating_RT_6": {
+        "Description": "Reaction time for: During the movie, rate the maximum intensity you felt for each descriptor: Bored' (Bored)",
+        "Units": "Reaction time in milliseconds"
+    },
+    "MOV_Rating_RT_7": {
+        "Description": "Reaction time for: 'During the movie, rate the maximum intensity you felt for each descriptor: Aroused' (Aroused)",
+        "Units": "Reaction time in milliseconds"
+    },
+    "MOV_Rating_RT_8": {
+        "Description": "Reaction time for: 'During the movie, how afraid of heights did you feel?' (Heights)",
+        "Units": "Reaction time in milliseconds"
+    },
+    "MOV_Rating_RT_9": {
+        "Description": "Reaction time for: 'How attractive did you find the people in the movie?' (Attractive)",
+        "Units": "Reaction time in milliseconds"
+    }
+}

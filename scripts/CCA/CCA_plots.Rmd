@@ -1,0 +1,490 @@
+---
+title: "CCA_plots"
+output: html_document'
+---
+
+# Make short comprehensive labels for chordplot
+```{r}
+
+# clean slate to be sure
+rm(list = ls())
+
+# install packages
+if (!require("pacman")) install.packages("pacman")
+  pacman::p_load(readr,igraph,circlize,R.matlab,data.table, reshape2, tidyverse, ComplexHeatmap)
+
+atlas_labels <- as.list(read_csv('/mnt/fast_scratch/Atlases/atlas_abend200/abend216_mnicoords_AtlasLabels.csv')) 
+
+new_labels = atlas_labels$`Harvard-Oxford Cortical Structural Atlas` # use cortical labels for more specific region labels
+new_labels[(length(new_labels) - 15):length(new_labels)]  <- tail(atlas_labels$labels, 16) # last 16 subcortical
+
+# edit labels to make shorter 
+new_labels_short <- gsub("\\([^)]*\\)", "", new_labels) # Remove anything in brackets# edit labels to make shorter 
+for (i in seq_along(new_labels_short)) {
+  words_after_comma <- strsplit(new_labels_short[i], ", ")[[1]][2]
+  # Check for NA values
+  if (!is.na(words_after_comma)) {
+    # Check for sup
+    if (any(startsWith(words_after_comma, "sup"))) {
+      new_labels_short[i] <- paste0(strsplit(new_labels_short[i], ", ")[[1]][1], " Sup")
+    }
+    # Check for post
+    else if (any(startsWith(words_after_comma, "inf"))) {
+      new_labels_short[i] <- paste0(strsplit(new_labels_short[i], ", ")[[1]][1], " Inf")
+    }
+    # Check for post
+    else if (any(startsWith(words_after_comma, "ant"))) {
+      new_labels_short[i] <- paste0(strsplit(new_labels_short[i], ", ")[[1]][1], " Ant")
+    }
+    # Check for post
+    else if (any(startsWith(words_after_comma, "post"))) {
+      new_labels_short[i] <- paste0(strsplit(new_labels_short[i], ", ")[[1]][1], " Post")
+    }
+    # Check for pars opercularis
+    else if (words_after_comma == "pars opercularis") {
+      new_labels_short[i] <- paste0(strsplit(new_labels_short[i], ", ")[[1]][1], " ParsOper")
+    }
+    # Check for temporooccipital
+    else if (words_after_comma == "temporooccipital part") {
+      new_labels_short[i] <- paste0(strsplit(new_labels_short[i], ", ")[[1]][1], " TempOcci")
+    }
+    # Check for pars triangularis
+    else if (words_after_comma == "pars triangularis") {
+      new_labels_short[i] <- paste0(strsplit(new_labels_short[i], ", ")[[1]][1], " ParsTri")
+    }
+  }
+}
+
+# subcortical labels
+new_labels_short <- gsub("_R", "", new_labels_short) # removes _R
+new_labels_short <- gsub("_L", "", new_labels_short) # removes _L
+new_labels_short[(length(new_labels_short) - 7):length(new_labels_short)] <- sapply(strsplit(new_labels_short[(length(new_labels_short) - 7):length(new_labels_short)], "-"), function(x) ifelse(length(x) > 1, x[2], x[1])) # selects words after -
+
+# Add 'L' or 'R' based on the side indicator
+side_indicator <- ifelse(grepl("Left", atlas_labels$`Harvard-Oxford Subcortical Structural Atlas`), "L", "R")
+new_labels_short <- paste0(new_labels_short, " ", side_indicator)
+
+# get yeo7 networks
+yeo7 <- sub("^[^-]+-([^\\-]+)-.*$", "\\1", atlas_labels$labels) # yeo networks
+yeo7[(length(yeo7) - 15):length(yeo7)] <- 'Subcortical' # added 16 subcortical to networks
+
+# make csv and save
+atlas_labels$short_labels <- new_labels_short
+atlas_labels$yeo7 <- yeo7
+#write.csv(atlas_labels, file = '~/Git/body_wandering/data/abend216_labels.csv', row.names = FALSE)
+
+
+## create merged labels from atlas_labels$`Juelich Histological Atlas` labels & short_labels from Harvard-Oxford Cortical Structural Atlas (& 16 subcortical labels)
+merged_labels <- atlas_labels$`Juelich Histological Atlas`
+# removes %
+merged_labels <- gsub("% ", "", atlas_labels$`Juelich Histological Atlas`)
+# Remove the first GM or WM
+merged_labels <- gsub("^(GM |WM )", "", merged_labels)
+# Remove everything after /, keeping the last two parts
+merged_labels <- sub("/[^/]+\\s+([^/]+\\s+[^/]+)$", "\\1", merged_labels)
+# Replace "NaN" values with corresponding labels from atlas_labels
+for (i in seq_along(merged_labels)) {
+  if (merged_labels[i] == "NaN") {
+    merged_labels[i] <- atlas_labels$short_labels[i]
+  }
+}
+
+# last 16 subcortical
+merged_labels[(length(merged_labels) - 15):length(merged_labels)]  <- tail(new_labels_short, 16) # last 16 subcortical
+# make csv and save
+atlas_labels$merged_labels <- merged_labels
+#write.csv(atlas_labels, file = '~/Git/body_wandering/data/abend216_labels.csv', row.names = FALSE)
+
+# Shorten merged_labels for chordplot
+replacement_rules <- c(Visual = "Vis",
+                       Lateral = "Lat",
+                       Primary = "Prim",
+                       Secondary = "Second",
+                       Cortex = "Cort",
+                       Superior = "Sup",
+                       Temporal = "Temp",
+                       Middle = "Mid",
+                       Anterior = "Ant",
+                       lobule = "Lob",
+                       Inferior = "Inf",
+                       Central = "Cent",
+                       Frontal = "Front",
+                       Gyrus = "Gyr",
+                       auditory = "Aud")
+
+# Apply the replacements
+for (pattern in names(replacement_rules)) {
+  merged_labels <- gsub(paste0("\\b", pattern, "\\b"), replacement_rules[pattern], merged_labels, ignore.case = TRUE)
+}
+merged_labels <- str_to_title(merged_labels) # capitalise first letter of each word
+
+# make each word just 4 letters & capitalise first:
+#library(tools)
+#sapply(merged_labels, function(label) toTitleCase(paste(substr(strsplit(label, " ")[[1]], 1, 4), collapse = " ")))
+
+```
+
+
+
+<!-- ```{r} -->
+<!-- # create interoceptive network labels - for merged labels  -->
+
+<!-- # Strings to search for -->
+<!-- search_strings <- c('insula', 'cingulate', 'orbital', 'front medial', 'somatosensory') -->
+<!-- # 'hypothalamus', 'hippocampus', 'amygdala', 'thalamus' - keep in subcortical -->
+
+<!-- # Find indices containing each search string -->
+<!-- matching_indices_harvard <- lapply(search_strings, function(s) grep(s, merged_labels, ignore.case = TRUE)) -->
+
+<!-- # Print matching entries -->
+<!-- for (i in seq_along(search_strings)) { -->
+<!--   matching_entries <- merged_labels[matching_indices_harvard[[i]]] -->
+<!--   cat(sprintf('Entries containing "%s": %s\n', search_strings[i], toString(matching_entries)), "\n") -->
+<!-- } -->
+<!-- #  -->
+<!-- # # primary and secondary somatosensory cortex defined in Juelich Histological Atlas -->
+<!-- # # Strings to search for -->
+<!-- # search_strings <- c('somatosensory') -->
+<!-- # # Find indices containing each search string -->
+<!-- # matching_indices_juelich <- lapply(search_strings, function(s) grep(s, atlas_labels$`Juelich Histological Atlas`, ignore.case = TRUE)) -->
+<!-- #  -->
+<!-- # # Print matching entries -->
+<!-- # for (i in seq_along(search_strings)) { -->
+<!-- #   matching_entries <- atlas_labels$`Juelich Histological Atlas`[matching_indices_juelich[[i]]] -->
+<!-- #   cat(sprintf('Entries containing "%s": %s \n', search_strings[i], toString(matching_entries)), "\n") -->
+<!-- # } -->
+
+<!-- matching_indices <- unlist(c(matching_indices_harvard)) #, matching_indices_juelich)) #47 -->
+
+<!-- # replace yeo7 entries with Intero for interoceptive network regions -->
+<!-- yeo7[matching_indices] <- 'Intero' -->
+
+<!-- atlas_labels$yeo7Intero <- yeo7 -->
+<!-- #write.csv(atlas_labels, file = '~/Git/body_wandering/data/abend216_yeo7+InteroNetwork.csv', row.names = FALSE) -->
+
+<!-- ``` -->
+
+
+```{r}
+# create interoceptive network labels - if using short_labels
+
+# Strings to search for
+search_strings <- c('insula', 'cingulate', 'orbital', 'frontal medial', 'postcentral gyrus', 'opercular') #postcentral gyrus = primary somatosensory cortex, Central Opercular Cortex = secondary somatosensory cortex (precentral gryus = primary motor cortex)
+
+# 'hypothalamus', 'amygdala', 'thalamus' - keep in subcortical
+
+# Find indices containing each search string
+matching_indices_harvard <- lapply(search_strings, function(s) grep(s, atlas_labels$short_labels, ignore.case = TRUE))
+
+# Print matching entries
+for (i in seq_along(search_strings)) {
+  matching_entries <- atlas_labels$short_labels[matching_indices_harvard[[i]]]
+  cat(sprintf('Entries containing "%s": %s\n', search_strings[i], toString(matching_entries)), "\n")
+}
+
+matching_indices <- unlist(c(matching_indices_harvard)) #, matching_indices_juelich)) #47
+
+# replace yeo7 entries with Intero for interoceptive network regions
+yeo7[matching_indices] <- 'Intero'
+
+atlas_labels$yeo7Intero_Shortlabels <- yeo7
+#write.csv(atlas_labels, file = '~/Git/body_wandering/data/abend216_yeo7+InteroNetwork.csv', row.names = FALSE)
+
+```
+
+
+# Make/test chordplot R function
+```{r}
+
+# chordplot function (saves png)
+chordplot <- function(cca_filename, threshold_percentile, chord2plot, savepath, region_labels, network_labels) {
+ 
+  # install packages
+  if (!require("pacman")) install.packages("pacman")
+    pacman::p_load(readr,igraph,circlize,R.matlab,data.table, reshape2, tidyverse, ComplexHeatmap)
+  
+  ##############################################################################
+  # Format cca results (thresholded adjacency list with regions & networks)
+  ##############################################################################  
+  # read in cca data  
+  cca_results <- readMat(cca_filename) 
+  
+  Aload = cca_results$weightX 
+  
+  # rewrap function in R
+  rewrap <- function(V) {
+    # check for pacman package and install if not found
+  if (!require("pacman")) install.packages("pacman")
+    pacman::p_load(signal)
+    nE <- length(V)
+    Nn <- max(Re(roots(c(1, -1, -2*nE))))
+    idx <- upper.tri(matrix(data=1,nrow=Nn,ncol=Nn), diag = FALSE)
+    tmp <- matrix(data=0,nrow=Nn,ncol=Nn)
+    tmp[idx] <- V
+    W <- tmp + t(tmp)
+    return(W)
+  }
+  
+  atlas_size = 216
+  Aload_matrix <- array(numeric(),c(atlas_size,atlas_size)) 
+  
+  Aload_matrix[ , ] <- rewrap(Aload[ ]);
+  
+  # threshold matrix 
+  threshold = quantile(abs(Aload_matrix), threshold_percentile)
+  idx = Aload_matrix[ , ] < threshold & Aload_matrix[ , ] > -threshold 
+  Aload_matrix[ , ][idx] = NA; 
+  
+  # select which connectome results to plot (& remove lower triangle)
+  connectivity = Aload_matrix 
+  connectivity[lower.tri(connectivity)] <- NA  
+  
+  # add labels to connectivity matrix
+  rownames(connectivity) = make.names(region_labels, unique=TRUE) # deal with duplicates atlas_labels by adding .1 .2 etc
+  colnames(connectivity) = make.names(region_labels, unique=TRUE) # deal with duplicates atlas_labels by adding .1 .2 etc
+  
+  # matrix with removed NA's (values below threshold)
+  connectivity_small <- connectivity[rowSums(is.na(connectivity))<ncol(connectivity),colSums(is.na(connectivity))<nrow(connectivity)] 
+  
+  # Make adjacency list with regions & networks
+  my_cor_df <- melt(connectivity_small)
+  # create adjacency list without NA
+  my_adj_list <- my_cor_df %>% drop_na(value)
+  names(my_adj_list) <- c('reg_A', 'reg_B', 'weight')
+  
+  # Network labels
+  colnames(connectivity) = network_labels
+  rownames(connectivity) = network_labels
+  connectivity_small <- connectivity[rowSums(is.na(connectivity))<ncol(connectivity),colSums(is.na(connectivity))<nrow(connectivity)] # removerows/cols with all NAs
+  cor_df_networks <- melt(connectivity_small)
+  # create adjacency list without NA
+  adj_list_networks <- cor_df_networks %>% drop_na(value)
+  
+  my_adj_list <- cbind(my_adj_list, adj_list_networks[ ,1:2])
+  colnames(my_adj_list)[4] <- "mod_A"
+  colnames(my_adj_list)[5] <- "mod_B"
+  
+
+  ##############################################################################
+  # set chordplot details & plot!
+  ##############################################################################  
+  circos.clear
+  
+  # define network groups
+  modul = c(structure(as.character(my_adj_list$mod_A), names=as.character(my_adj_list$reg_A)), structure(as.character(my_adj_list$mod_B), names=as.character(my_adj_list$reg_B)))
+  modul = modul[!duplicated(names(modul))]
+  modul = modul[order(modul, names(modul))]
+  
+  # rearrange modul so Intero first
+  #modul <- c(modul[grepl("Intero", modul)], modul[!grepl("Intero", modul)])
+  
+  # define colour of networks
+  mod_colors=c( '#DA4167', '#6D77F6', '#c8b6ff', '#B5179E', '#9D4EDD', 'slategray1',  '#48BFE3', 'hotpink1', '#5A189A')
+  modul_color = structure(mod_colors, names = unique(modul)) #mod_colors[1:8]
+
+ # ensure network colours are the same in each chordplot
+  for (idx in 1:length(modul_color)) {
+    if (isTRUE(names(modul_color[idx]) == "SalVentAttn")) {
+      modul_color[idx] = '#B5179E' 
+    } else if  (isTRUE(names(modul_color[idx]) == "Cont")) {
+      modul_color[idx] = '#6D77F6'
+    } else if  (isTRUE(names(modul_color[idx]) == "DorsAttn")) {
+      modul_color[idx] = '#9D4EDD'
+    } else if  (isTRUE(names(modul_color[idx]) == "Subcortical")) {
+      modul_color[idx] = '#c8b6ff'
+    } else if  (isTRUE(names(modul_color[idx]) == "Vis")) {
+      modul_color[idx] = '#5A189A'
+    } else if  (isTRUE(names(modul_color[idx]) == "Limbic")) {
+      modul_color[idx] = '#DA4167'
+    } else if  (isTRUE(names(modul_color[idx]) == "Default")) {
+      modul_color[idx] = '#a2d2ff'
+    } else if  (isTRUE(names(modul_color[idx]) == "SomMot")) {
+      modul_color[idx] = '#48BFE3'  
+    } else if  (isTRUE(names(modul_color[idx]) == "Intero")) {
+      modul_color[idx] = 'hotpink1' 
+    }
+  }
+  #mod_colors = unique(modul_color)
+  reg_color = structure(modul_color[as.factor(modul)], names = names(modul))
+  
+  # colours of links (positive & negative)
+  cols = c('#50C1F1', '#F3696E') #, '#7fc8f8',  '#f87575'
+  
+  
+  
+  # define gap between networks
+  #gap.after = do.call("c", lapply(table(modul), function(i) c(rep(2, i-1), 10)))
+  # or gap just between Intero
+  gap.after <- replace(rep(2, length(modul)), c(min(which(modul == "Intero")) - 1, max(which(modul == "Intero"))), 20)
+  names(gap.after) <- modul
+  
+
+  circos.par(gap.after = gap.after, cell.padding = c(0, 0, 0, 0), canvas.ylim=c(-1.5,1.5), start.degree = 130) # adjust gaps between regions & size of canvas (so text can fit) & orientation of chordplot (start.degree)
+  
+  # SAVE           
+  png(sprintf("%schordplot_CCAloadings_%.3fthresh_%.2fpercentile_Network_shorterlabels.png", savepath, round(threshold, 3), round(threshold_percentile, 3)), res = 150, height = 17, width = 17, units = "cm")
+
+  # text size
+  par(cex = 0.6) 
+  
+  # plot chordDiagram - with positive & negative links
+  chordDiagram(my_adj_list, annotationTrack = "grid", grid.col = reg_color, order = names(modul), directional = 1, preAllocateTracks =  list(list(track.height = 0.02)), col=cols[(sign(my_adj_list$weight)+3)/2])
+  circos.track(track.index = 1, panel.fun = function(x, y) {
+      circos.text(CELL_META$xcenter, CELL_META$ylim[1], CELL_META$sector.index,
+          facing = "clockwise", niceFacing = TRUE, adj = c(0, 0.5))
+  }, bg.border = NA) # here set bg.border to NA is important
+  
+  
+  # add legend
+  lgd_networks = Legend(labels = c(unique(modul)), legend_gp = gpar(fill = unique(reg_color)), title = "Network")
+  lgd_list_vertical = packLegend(lgd_networks)
+  draw(lgd_list_vertical, x = unit(4, "mm"), y = unit(4, "mm"), just = c("left", "bottom"))
+  
+  dev.off()
+  
+  return(list(my_adj_list=my_adj_list, threshold=threshold))
+}
+
+
+```
+
+```{r}
+# Make labels in chordplot even shorter
+
+# Shorten merged_labels for chordplot
+replacement_rules <- c(Cortex = "Cort",
+                       Gyrus = "Gyr",
+                       Central = 'Cent',
+                       Postcentral = 'Postcent',
+                       Precentral = 'Precent',
+                       Cingulate = 'Cingu',
+                       Paracingulate = 'Paracingu',
+                       Parietal = 'Pariet',
+                       Opercular = 'Operc',
+                       Operculum = 'Operc',
+                       Temporale = 'Temp',
+                       Temporal = 'Temp',
+                       Supramarginal = 'Supramarg',
+                       Juxtapositional = 'Juxtapos',
+                       Lobule = 'Lob',
+                       Frontal = 'Front',
+                       Middle = 'Mid',
+                       Superior = 'Sup',
+                       Lateral = 'Lat',
+                       Inferior = 'Inf',
+                       Occipital = 'Occip',
+                       Fusiform = 'Fusif'
+                       )
+
+# Apply the replacements
+for (pattern in names(replacement_rules)) {
+  my_adj_list$reg_A <- gsub(paste0("\\b", pattern, "\\b"), replacement_rules[pattern], my_adj_list$reg_A, ignore.case = TRUE)
+  my_adj_list$reg_B <- gsub(paste0("\\b", pattern, "\\b"), replacement_rules[pattern], my_adj_list$reg_B, ignore.case = TRUE)
+}
+
+```
+
+
+
+```{r}
+
+# ChordDiagram with extra network labels outer layer 
+
+
+ # SAVE           
+png(sprintf("%schordplot_CCAloadings_%.3fthresh_%.2fpercentile__ShorterLabels.png", savepath, round(threshold, 3), round(threshold_percentile, 3)), res = 150, height = 19, width = 19, units = "cm")
+
+circos.par(gap.after = gap.after, cell.padding = c(0, 0, 0, 0), canvas.ylim=c(-1.5,1.5), start.degree = 130, track.margin = c(0.01, 0.02)) 
+
+par(cex = 0.675) 
+
+# plot chordDiagram - with positive & negative links
+chordDiagram(my_adj_list, annotationTrack = "grid", grid.col = reg_color, order = names(modul), directional = 1, preAllocateTracks =  list(list(track.height = 0.08)), col=cols[(sign(my_adj_list$weight)+3)/2])
+
+
+for (network in unique(modul)) {
+  if (network == "SalVentAttn") {
+      highlight.sector(names(modul[modul == network]), track.index = 1, col = reg_color[modul == network][1], 
+    text = 'SV', cex = 0.9, text.col = "white", niceFacing = TRUE, font=2)
+  } else {
+  highlight.sector(names(modul[modul == network]), track.index = 1, col = reg_color[modul == network][1], 
+    text = modul[modul == network][1], cex = 0.9, text.col = "white", niceFacing = TRUE, font=2)
+  }
+}
+
+
+circos.track(track.index = 1, panel.fun = function(x, y) {
+  circos.text(CELL_META$xcenter, CELL_META$ylim[1]+1.5, CELL_META$sector.index,
+              facing = "clockwise", niceFacing = TRUE, adj = c(0, 0.5))
+}, bg.border = NA) # here set bg.border to NA is important
+
+
+# add legend
+lgd_networks = Legend(labels = c(unique(modul)), legend_gp = gpar(fill = unique(reg_color)), title = "Network")
+lgd_list_vertical = packLegend(lgd_networks)
+draw(lgd_list_vertical, x = unit(4, "mm"), y = unit(4, "mm"), just = c("left", "bottom"))
+
+dev.off()
+
+
+```
+
+
+
+# run chordplot function 
+```{r}
+# clean slate to be sure
+#rm(list = ls())
+circos.clear
+
+#source('~/Git/body_wandering/rcode/CCA_Chordplot/chordplot_Abend216.R')
+
+# variables for function
+cca_filename <- "/home/leah/Git/body_wandering/figures/CCA/Abend216/BWitems/brainweights.mat" 
+threshold_percentile <- 0.99
+chord2plot <- 1
+savepath = "~/Git/body_wandering/figures/CCA/Abend216/BWitems/" 
+region_labels = atlas_labels$short_labels #merged_labels
+network_labels = yeo7
+
+# run chordplot function
+chordplot_result <- chordplot(cca_filename, threshold_percentile, chord2plot, savepath, region_labels, network_labels)
+
+
+# rearrange adj_list of connectivity edge loadings & save
+adj_list <- chordplot_result$my_adj_list %>%
+  arrange(desc(abs(weight)))
+# Save the original weight values to a CSV file
+write.csv(adj_list[, c("reg_A", "reg_B", "weight", "mod_A", "mod_B")], paste0(savepath, "brainloadings_adjlist_HarvardLabels2.csv"), row.names = FALSE)
+
+```
+
+```{r}
+# Other atlas labels (AAL & BA)
+
+#install.packages("remotes")
+#remotes::install_github("yunshiuan/label4MRI")
+library(label4MRI)
+library(readr)
+
+#atlas_labels <- as.list(read_csv('/mnt/fast_scratch/Atlases/atlas_abend200/abend216_mnicoords_AtlasLabels.csv'))
+
+# Label multiple MNI coordinates at once
+extra_labels <- mapply(mni_to_region_name,
+  x = atlas_labels$mnicoordsX,
+  y = atlas_labels$mnicoordsY,
+  z = atlas_labels$mnicoordsZ
+)
+
+atlas_labels$AAL <- unlist(extra_labels['aal.label', ])
+atlas_labels$BA <- unlist(extra_labels['ba.label', ])
+
+write.csv(atlas_labels, file = '~/Git/body_wandering/data/abend216_ALLlabels.csv', row.names = FALSE)
+
+```
+
+
+
+
+
+

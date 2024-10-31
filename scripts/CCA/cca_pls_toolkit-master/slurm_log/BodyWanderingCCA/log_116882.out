@@ -1,0 +1,75 @@
+
+                            < M A T L A B (R) >
+                  Copyright 1984-2021 The MathWorks, Inc.
+             R2021a Update 4 (9.10.0.1710957) 64-bit (glnxa64)
+                                July 1, 2021
+
+
+                            < M A T L A B (R) >
+                  Copyright 1984-2021 The MathWorks, Inc.
+             R2021a Update 4 (9.10.0.1710957) 64-bit (glnxa64)
+                                July 1, 2021
+
+ 
+For online documentation, see https://www.mathworks.com/support
+For product information, visit www.mathworks.com.
+ 
+ 
+For online documentation, see https://www.mathworks.com/support
+For product information, visit www.mathworks.com.
+ 
+[Warning: cfg structures are not the same, be very cautious!] 
+[> In savemat (line 48)
+In cfg_defaults (line 520)
+In RunCCA (line 45)] 
+cfg.machine.param.PCAx with different value
+cfg.env.fileend with different value
+cfg.env.seed.model with different value
+cfg.data.nsubj with different value
+Associative effect 1
+
+Running hyperparameter optimization
+hyperparameter id: 1 (out of 90), split id: 1 (out of 5)...{The logical indices in position 1 contain a true value outside of the array
+bounds.
+
+Error in load_data (line 166)
+        trdata.(m) = data.(m)(trid,:);
+
+Error in run_model (line 96)
+                            [trdata, ~, tedata, ~, featid] = load_data(res,
+                            {'X' 'Y'}, ...
+
+Error in main (line 54)
+run_model(res, 'gridsearch');
+
+Error in RunCCA (line 49)
+main(cfg);
+} 
+>> [Warning: cfg structures are not the same, be very cautious!] 
+[> In savemat (line 48)
+In cfg_defaults (line 520)
+In RunCCA (line 45)] 
+cfg.machine.param.PCAx with different value
+cfg.env.fileend with different value
+cfg.env.seed.model with different value
+cfg.data.nsubj with different value
+Associative effect 1
+
+Running hyperparameter optimization
+hyperparameter id: 1 (out of 90), split id: 1 (out of 5)...{The logical indices in position 1 contain a true value outside of the array
+bounds.
+
+Error in load_data (line 166)
+        trdata.(m) = data.(m)(trid,:);
+
+Error in run_model (line 96)
+                            [trdata, ~, tedata, ~, featid] = load_data(res,
+                            {'X' 'Y'}, ...
+
+Error in main (line 54)
+run_model(res, 'gridsearch');
+
+Error in RunCCA (line 49)
+main(cfg);
+} 
+>> 

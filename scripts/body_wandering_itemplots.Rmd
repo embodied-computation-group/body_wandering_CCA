@@ -1,0 +1,175 @@
+
+**Import post-resting-state mind-wandering data**
+```{r message=FALSE}
+
+# clean slate to be sure
+rm(list = ls())
+
+# check for pacman package and install if not found
+if (!require("pacman")) install.packages("pacman")
+  pacman::p_load(readr,psych,polycor,corrplot,dplyr, tidyverse, here, circlize, BiocManager, ComplexHeatmap, gplots, gridExtra, gt, kableExtra, ggcorrplot, shape, patchwork, tidyr)
+
+# load probe data 
+probe_data <- read_tsv(here::here("data", "mindwand_movieratings.tsv")) 
+
+# select post-restingstate mindwandering responses only
+rest_probes <- probe_data %>%
+  dplyr::select(-starts_with("RS_MW_RT")) %>%
+  dplyr::select(-starts_with("MOV_MW_RT")) %>%
+  dplyr::select(starts_with("RS_MW"))
+ 
+rest_probes[rest_probes == "n/a"] <- NA # NA's in correct format #rest_probes 
+rest_probes <- apply(as.matrix(rest_probes), 2, as.numeric) #convert to numeric matrix
+
+hist(rest_probes)
+
+#load the MW probe key
+MW_rest_key <- read_csv(here::here("data", "probe_key.csv"))
+colnames(rest_probes) = MW_rest_key$Label
+
+```
+
+# Item Ratings
+```{r}
+
+# rearrange cols for horizontal plot
+rest_probes_reorder <- dplyr::select(data.frame(rest_probes), Stomach, Skin, Bladder, Movement, Heart, Breath, Body, Arousal, Image, Distant, Ruminate, Focus, Spontaneous, Vague, Vivid, Words, Neg, Pos, Other, Self, Past, Future)
+
+data_tmp_rest <- rest_probes_reorder #as.data.frame(rest_probes_reorder)
+data_tmp_rest$id <- probe_data$participant_id
+nan_ids_rest  = which(is.na(data_tmp_rest[,1]))
+data_tmp_rest<-data_tmp_rest[-nan_ids_rest,]
+
+plot_data_rest <- data_tmp_rest %>%
+  pivot_longer(cols = Stomach:Future,names_to = "Item", values_to = "Rating") 
+
+# make plot which shows body items on one side, affective, cognitive, etc
+plot_data_rest$Item <- factor(plot_data_rest$Item,levels = colnames(rest_probes_reorder))
+
+# horizontal coloured reordered plot (highest to lowest)
+png(filename = here::here("figures", "boxplot_rest_reordered.png"), res = 150, height = 12, width = 12, units = "cm")
+
+  ggplot(plot_data_rest, aes(x = reorder(Item, Rating), y = Rating)) + 
+  geom_boxplot(notch = TRUE,outlier.shape = NA,aes(fill=Item), show.legend = FALSE) + 
+  theme_classic() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  scale_fill_manual(values = colors <- rep(c("#ff70a6", "#70d6ff"), times=c(8, 14))) +
+  theme(text = element_text(size = 15))  +
+  labs(x = "MDIES Item", y = "Rating") +
+  # Horizontal box plot
+  coord_flip()
+  
+dev.off()
+
+
+```
+
+
+# Corr plots (body-related factors & emotion)
+```{r}
+
+Affect_Body <- data.frame(rest_probes) %>% dplyr::select(Pos, Neg, Arousal, Body, Breath, Heart, Movement, Bladder, Skin, Stomach) %>%
+  na.omit()
+
+# Correlation plots
+cormatrix_AB <-t(psych::corr.test(Affect_Body, method = "spearman", adjust = "fdr")$r[1:2, 3:10])
+cor_pvals_AB <-t(psych::corr.test(Affect_Body, method = "spearman", adjust = "fdr")$p[1:2, 3:10])
+
+cormatrix_AB <- as.data.frame(cormatrix_AB)
+cormatrix_AB$Items <- rownames(cormatrix_AB)
+
+# Convert to long format
+cormatrix_AB<- cormatrix_AB %>%
+  pivot_longer(cols = -Items, names_to = "Correlation", values_to = "Value") %>%
+  mutate(Items = factor(Items, levels = unique(Items))) # Ensure the order is as desired
+
+# Step 1: Create a sorting frame based on positive correlations
+pos_sort_order <- cormatrix_AB %>%
+  dplyr::filter(Correlation == "Pos") %>%
+  dplyr::arrange(desc(Value)) %>%
+  dplyr::mutate(order = row_number()) %>%
+  dplyr::select(Items, order) # Adjusted to ensure select is correctly applied
+
+# Step 2: Merge this order back into the original dataset
+cormatrix_AB <- cormatrix_AB %>%
+  left_join(pos_sort_order, by = "Items") %>%
+  mutate(Items = factor(Items, levels = pos_sort_order$Items)) # Reorder based on positive correlation
+
+# Step 3: Plot the data
+plot <- ggplot(cormatrix_AB, aes(x = Items, y = Value, fill = Correlation)) +
+  geom_col(position = position_dodge2(padding = 0.2), width = 1) +
+  coord_flip() +
+  theme_minimal() +
+  scale_fill_manual(values = c("Neg" = "lightslateblue", "Pos" = "#ffd670")) +
+  labs(y = "Correlation Coefficient", title = "Affect-Body Correlation Coefficients") +
+  theme(
+    axis.title.y = element_text(size = 16),
+    axis.title.x = element_text(size = 16),
+    axis.text.y = element_text(size = 16, margin = margin(t = 0, r = 0, b = 0, l = 10, unit = "pt")),
+    axis.text.x = element_text(size = 16, margin = margin(t = 0, r = 0, b = 10, l = 0, unit = "pt")),
+    legend.text = element_text(size = 16),
+    legend.title = element_text(size = 15),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_blank(),
+    axis.line = element_line(colour = "black")
+  )
+
+print(plot)
+
+# Save the plot with specified dimensions
+ggsave(here::here("figures", "AffectBody_correlations_YPordered.png"), plot, width = 6, height = 8, dpi = 300, bg = 'white')
+
+  
+```
+
+
+
+```{r}
+png(filename = here("figures", "corplot_affect_body.png"), res = 150, height = 12, width = 12, units = "cm")
+# Correlation plots
+cormatrix_AB <-t(psych::corr.test(Affect_Body, method = "spearman", adjust = "fdr")$r[1:2, 3:10])
+cor_pvals_AB <-t(psych::corr.test(Affect_Body, method = "spearman", adjust = "fdr")$p[1:2, 3:10])
+
+corrplot(cormatrix_AB, method="color", addCoef.col = 'black', cl.pos = 'n',col.lim = c(min(cormatrix_AB), max(cormatrix_AB)),tl.col="black", col=colorRampPalette(c("blue","white","red"))(100))
+dev.off()
+
+```
+
+
+# All item correlations
+```{r}
+
+# rearrange cols for horizontal plot
+rest_probes_reorder <- select(data.frame(rest_probes), Stomach, Skin, Bladder, Movement, Heart, Breath, Body, Arousal, Image, Distant, Ruminate, Focus, Vague, Vivid, Words, Past, Future, Other, Self, Neg, Pos)
+
+rest_probes_reorder
+
+cor_rvals <-psych::corr.test(data.frame(rest_probes_reorder), method = "spearman", adjust = "fdr")$r
+cor_pvals <-psych::corr.test(data.frame(rest_probes_reorder), method = "spearman", adjust = "fdr")$p
+
+
+cp1 <- ggcorrplot(cor_rvals, p.mat = cor_pvals, hc.order=FALSE,
+           type='full', insig='blank', method = "square", sig.level = 0.05, 
+           outline.col = "black",
+          # lab = TRUE,
+           ggtheme = ggplot2::theme_minimal,
+           tl.cex = 8,
+           colors = c("#6D9EC1", "white", "#EA5F21FF")) +
+  geom_hline(yintercept = ncol(cor_rvals)+.5, linetype = 3, size = 1) +
+  geom_vline(xintercept = .5, linetype = 3, size = 1) +
+  geom_abline(intercept = 0, slope = 1, linetype = 3, size = 1) +
+  ggtitle("item rating correlations") +
+  plot_annotation(
+  title = 'item rating correlations',
+  subtitle = 'Spearman Correlations',
+  caption = 'Upper triangle pFDR < 0.05. ',
+)
+
+cp1
+
+#ggsave(here::here("figures", "corrplot_items_bodywander_fdr_05_spearman.png"), height = 8, width = 8, dpi = 300, units = "in")
+
+
+```
+

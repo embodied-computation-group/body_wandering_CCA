@@ -1,0 +1,167 @@
+
+                            < M A T L A B (R) >
+                  Copyright 1984-2021 The MathWorks, Inc.
+             R2021a Update 4 (9.10.0.1710957) 64-bit (glnxa64)
+                                July 1, 2021
+
+
+                            < M A T L A B (R) >
+                  Copyright 1984-2021 The MathWorks, Inc.
+             R2021a Update 4 (9.10.0.1710957) 64-bit (glnxa64)
+                                July 1, 2021
+
+[Warning: Directory permission denied: /home/niia/matlab] 
+[Warning: Directory permission denied:
+/home/niia/Documents/Github/connectivity_tools/toolboxes/matlab/cca_pls_toolkit-master/demo] 
+[Warning: Directory permission denied:
+/home/niia/Documents/Github/connectivity_tools/toolboxes/matlab/cca_pls_toolkit-master/util] 
+[Warning: Directory permission denied:
+/home/niia/Documents/Github/connectivity_tools/toolboxes/matlab/cca_pls_toolkit-master/machines] 
+[Warning: Directory permission denied:
+/home/niia/Documents/Github/connectivity_tools/toolboxes/matlab/cca_pls_toolkit-master/misc] 
+[Warning: Directory permission denied:
+/home/niia/Documents/Github/connectivity_tools/toolboxes/matlab/cca_pls_toolkit-master/fileio] 
+[Warning: Directory permission denied:
+/home/niia/Documents/Github/connectivity_tools/toolboxes/matlab/cca_pls_toolkit-master] 
+[Warning: Directory permission denied:
+/home/niia/Documents/Github/connectivity_tools/toolboxes/matlab/cca_pls_toolkit-master/_Project_RespFingerprint] 
+[Warning: Directory permission denied:
+/home/niia/Documents/Github/connectivity_tools/toolboxes/matlab/cca_pls_toolkit-master/_Project_RespFingerprint/data] 
+[Warning: Directory permission denied:
+/home/niia/Documents/Github/connectivity_tools/toolboxes/matlab/cca_pls_toolkit-master/_Project_RespFingerprint/framework] 
+ 
+For online documentation, see https://www.mathworks.com/support
+For product information, visit www.mathworks.com.
+ 
+[Warning: Directory permission denied: /home/niia/matlab] 
+[Warning: Directory permission denied:
+/home/niia/Documents/Github/connectivity_tools/toolboxes/matlab/cca_pls_toolkit-master/demo] 
+[Warning: Directory permission denied:
+/home/niia/Documents/Github/connectivity_tools/toolboxes/matlab/cca_pls_toolkit-master/util] 
+[Warning: Directory permission denied:
+/home/niia/Documents/Github/connectivity_tools/toolboxes/matlab/cca_pls_toolkit-master/machines] 
+[Warning: Directory permission denied:
+/home/niia/Documents/Github/connectivity_tools/toolboxes/matlab/cca_pls_toolkit-master/misc] 
+[Warning: Directory permission denied:
+/home/niia/Documents/Github/connectivity_tools/toolboxes/matlab/cca_pls_toolkit-master/fileio] 
+[Warning: Directory permission denied:
+/home/niia/Documents/Github/connectivity_tools/toolboxes/matlab/cca_pls_toolkit-master] 
+[Warning: Directory permission denied:
+/home/niia/Documents/Github/connectivity_tools/toolboxes/matlab/cca_pls_toolkit-master/_Project_RespFingerprint] 
+[Warning: Directory permission denied:
+/home/niia/Documents/Github/connectivity_tools/toolboxes/matlab/cca_pls_toolkit-master/_Project_RespFingerprint/data] 
+[Warning: Directory permission denied:
+/home/niia/Documents/Github/connectivity_tools/toolboxes/matlab/cca_pls_toolkit-master/_Project_RespFingerprint/framework] 
+ 
+For online documentation, see https://www.mathworks.com/support
+For product information, visit www.mathworks.com.
+ 
+[Warning: cfg structures are not the same, be very cautious!] 
+[> In savemat (line 48)
+In cfg_defaults (line 520)
+In RunCCA (line 45)] 
+[Warning: cfg structures are not the same, be very cautious!] 
+[> In savemat (line 48)
+In cfg_defaults (line 520)
+In RunCCA (line 45)] 
+cfg.env.fileend with different value
+cfg.env.seed.model with different value
+cfg.env.fileend with different value
+cfg.env.seed.model with different value
+Associative effect 1
+Associative effect 1
+
+Running hyperparameter optimization
+
+Running hyperparameter optimization
+hyperparameter id: 1 (out of 9), split id: 1 (out of 5)...hyperparameter id: 1 (out of 9), split id: 1 (out of 5)...[Warning: Dimensionality of data X is lower than number of PCA components] 
+[> In get_featid (line 39)
+In load_data (line 270)
+In run_model (line 96)
+In main (line 54)
+In RunCCA (line 49)] 
+{Error using var (line 74)
+Invalid data type. First input argument must be single or double.
+
+Error in std (line 59)
+y = sqrt(var(varargin{:}));
+
+Error in zscore (line 55)
+sigma = std(x,flag,dim);
+
+Error in preproc_data (line 41)
+            [data.(mod), mu, sigma] = zscore(data.(mod));
+
+Error in load_data (line 201)
+        trdata = preproc_data(res, trdata, m, fnamepp, trid);
+
+Error in run_model (line 96)
+                            [trdata, ~, tedata, ~, featid] = load_data(res,
+                            {'X' 'Y'}, ...
+
+Error in main (line 54)
+run_model(res, 'gridsearch');
+
+Error in RunCCA (line 49)
+main(cfg);
+} 
+{Error using var (line 74)
+Invalid data type. First input argument must be single or double.
+
+Error in std (line 59)
+y = sqrt(var(varargin{:}));
+
+Error in zscore (line 55)
+sigma = std(x,flag,dim);
+
+Error in preproc_data (line 41)
+            [data.(mod), mu, sigma] = zscore(data.(mod));
+
+Error in load_data (line 201)
+        trdata = preproc_data(res, trdata, m, fnamepp, trid);
+
+Error in run_model (line 96)
+                            [trdata, ~, tedata, ~, featid] = load_data(res,
+                            {'X' 'Y'}, ...
+
+Error in main (line 54)
+run_model(res, 'gridsearch');
+
+Error in RunCCA (line 49)
+main(cfg);
+} 
+>> >> [Warning: cfg structures are not the same, be very cautious!] 
+[> In savemat (line 48)
+In cfg_defaults (line 520)
+In RunCCA (line 45)] 
+cfg.env.fileend with different value
+cfg.env.seed.model with different value
+Associative effect 1
+
+Running hyperparameter optimization
+hyperparameter id: 1 (out of 9), split id: 1 (out of 5)...{Error using var (line 74)
+Invalid data type. First input argument must be single or double.
+
+Error in std (line 59)
+y = sqrt(var(varargin{:}));
+
+Error in zscore (line 55)
+sigma = std(x,flag,dim);
+
+Error in preproc_data (line 41)
+            [data.(mod), mu, sigma] = zscore(data.(mod));
+
+Error in load_data (line 201)
+        trdata = preproc_data(res, trdata, m, fnamepp, trid);
+
+Error in run_model (line 96)
+                            [trdata, ~, tedata, ~, featid] = load_data(res,
+                            {'X' 'Y'}, ...
+
+Error in main (line 54)
+run_model(res, 'gridsearch');
+
+Error in RunCCA (line 49)
+main(cfg);
+} 
+>> 

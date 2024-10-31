@@ -1,0 +1,414 @@
+---
+title: "Correlation_matrix"
+output: html_document
+date: '2022-06-21'
+---
+
+# Load data 
+```{r}
+# clean slate to be sure
+rm(list = ls())
+
+# check for pacman package and install if not found
+if (!require("pacman")) install.packages("pacman")
+  pacman::p_load(tidyverse, here, corrplot, ggcorrplot, heatmap3, patchwork, cowplot, ggpubr, R.matlab, dplyr)
+
+# read merged csv & add factor loadings/ item ratings
+alldata <- read_csv("~/Git/body_wandering/data/BodyWanderingData.csv")
+
+```
+
+# Correlation matrix & scatterplot functions
+```{r}
+cormatrix_full <- function(cordata, title, subtitle) {
+  pval_fdr <- psych::corr.test(cordata, method = "spearman", adjust = "fdr")$p
+  rval_fdr <- psych::corr.test(cordata, method = "spearman", adjust = "fdr")$r
+  cp1 <- ggcorrplot(rval_fdr, p.mat = pval_fdr, hc.order=FALSE,
+             type='full', insig='blank', method = "square", sig.level = 0.05, #circle?
+             outline.col = "black",
+            # lab = TRUE,
+             ggtheme = ggplot2::theme_minimal,
+             tl.cex = 8,
+             colors = c("#6D9EC1", "white", "#EA5F21FF")) +
+    geom_hline(yintercept = ncol(rval_fdr)+.5, linetype = 3, size = 1) +
+    geom_vline(xintercept = .5, linetype = 3, size = 1) +
+    geom_abline(intercept = 0, slope = 1, linetype = 3, size = 1) +
+    ggtitle(title) +
+    labs(subtitle = subtitle)
+  
+  cp1 
+}
+
+
+cormatrix_selected <- function(cordata, xlabel, ylabel, xnum, ynum, savepath) {
+  # Correlation plots
+  cormatrix <- t(psych::corr.test(cordata, method = "spearman", adjust = "fdr")$r[1:xnum, (xnum+1):(xnum+ynum)]) #[(xnum+1):(xnum+ynum), 1:xnum]
+  cor_pvals <- t(psych::corr.test(cordata, method = "spearman", adjust = "fdr")$p[1:xnum, (xnum+1):(xnum+ynum)])
+  png(filename = savepath, res = 300, height = ((ynum*2)+2), width = 40, units = "cm") # width for factors
+  # Plot the correlation matrix with significance markers
+  corrplot::corrplot(cormatrix,
+                     method = "color",
+                     addCoef.col = 'black',
+                     cl.pos = 'n',
+                     col.lim = c(min(cormatrix), max(cormatrix)),
+                     tl.col = "black",
+                     col = colorRampPalette(c("blue", "white", "red"))(100),
+                     p.mat = cor_pvals,
+                     sig.level = 0.05,
+                     insig="blank",
+                     mar = c(0, 0, 1.75, 0)
+                     )$corrPos -> p1
+  text(p1$x, p1$y, round(p1$corr, 2))
+  
+  # Draw a rectangle around the entire correlation matrix
+  rect(0.5, 0.5, ncol(cormatrix) + 0.5, nrow(cormatrix) + 0.5, border = "black", lwd = 2)
+  dev.off()
+}
+
+
+scatterplot_gg <- function(cdat, yvar, xvar, colour) {
+  
+  corrdata <- data.frame(apply(cdat, 2, rank))
+  pval_fdr <- psych::corr.test(cdat, method = "spearman", adjust = "fdr")$p
+  rval_fdr <- psych::corr.test(cdat, method = "spearman", adjust = "fdr")$r
+
+    if (pval_fdr[xvar,yvar] < 0.001) {
+      pval = '<.001'}
+    else {
+      pval = round(pval_fdr[xvar,yvar], 3)
+    }
+  
+  ggplot(cdat, aes(y= !! sym(yvar), x= !! sym(xvar))) + 
+    geom_point(color=colour, alpha=0.75)+
+    geom_smooth(method=lm , color="#909086", fill="#69b3a2", se=TRUE) +
+    theme_classic() +
+    ggtitle(paste("rs =", round(rval_fdr[xvar,yvar], 3), ", pFDR =", pval))+ 
+    theme(plot.title = element_text(size = 9, face = "bold"), axis.title = element_text(size = 9), axis.text = element_text(size = 9))
+}
+
+```
+
+
+
+# Averages Body score, Cog score, & Affect score
+```{r}
+
+BodyAv <- rowMeans(alldata[ ,c("Body", "Breath", "Heart", "Movement", "Bladder", "Skin", "Stomach")])  
+CognitiveAv <- rowMeans(alldata[ ,c("Future", "Past", "Self", "Other")]) 
+AffectDiff <- as.numeric(unlist((alldata[ ,c("Neg")] - alldata[ ,c("Pos")])))  # positive diff score = more neg thoughts (negative diff score = more pos thoughts) 
+
+# correlations with items that go into
+corrdata <- cbind(BodyAv, CognitiveAv, AffectDiff, alldata[ ,c("Future", "Past", "Self", "Other", "Pos", "Neg", "Words", "Vivid", "Vague", "Spontaneous", "Focus", "Ruminate", "Distant", "Image", "Arousal", "Body", "Breath", "Heart", "Movement", "Bladder", "Skin", "Stomach")]) 
+cormatrix_full(corrdata, "Mind-Wandering Averages", "Averages & Item Correlations")
+
+# descriptives
+describe(BodyAv)
+describe(CognitiveAv)
+describe(AffectDiff)
+hist(BodyAv)
+hist(CognitiveAv)
+hist(AffectDiff)
+
+
+SubIDs <- as.numeric(substr(read_tsv(here::here("data", "mindwand_movieratings.tsv"), show_col_types = FALSE)$participant_id, start=5, stop=8))
+data <- as.data.frame(na.omit(cbind(SubIDs, BodyAv, CognitiveAv, AffectDiff)))
+colnames(data) <- c('SubIDs', 'Body', 'Cognitive', 'Negative')
+data_reshape <- gather(data, key = "Type", value = "Rating", -SubIDs)
+
+
+# Raincloud plots
+pacman::p_load(patchwork, tidyverse, lavaan, ggpp, plyr,
+               ggrain) #for rainclouds
+source('~/Git/body_wandering/rcode/geom_flat_violin.R')
+
+custom_colors <- c("Body" = "#CC79A7", "Cognitive" = "#00AFBB", "Negative" = "#Ecb831")
+p1 <- ggplot(data_reshape, aes(x = Type, y = Rating, fill = Type)) +
+  geom_flat_violin(aes(fill = Type), position = position_nudge(x = .2, y = 0), adjust = 1.5, trim = FALSE, alpha = .5, colour = NA, show.legend = FALSE, width = 1) +
+  geom_point(aes(x = Type, y = as.numeric(Rating) - .15, colour = Type), position = position_jitter(width = .075), size = 1, shape = 20, show.legend = FALSE) +
+  geom_boxplot(aes(x = Type, y = Rating, fill = Type), outlier.shape = NA, alpha = .5, width = .2, colour = "black", show.legend = FALSE) +
+  scale_fill_manual(values = custom_colors) +  # Set fill colors
+  scale_color_manual(values = custom_colors) +  # Set border (stroke) colors
+  ggtitle("Mind-Wandering Summaries") +
+  xlab(NULL) + # Remove bottom overall x-axis label
+  ylab("Rating") +
+  theme(panel.background = element_blank(),          # Remove gray background
+        axis.line = element_line(color = "black"),   # Retain x and y axis lines 
+        axis.text.x = element_text(size = 12),      # Increase size of x-axis labels
+        axis.text.y = element_text(size = 12),      # Increase size of y-axis labels
+        axis.title.y = element_text(size = 13))
+
+p1
+ggsave(here::here("figures", "BodyCogNeg_raincloud.png"), height = 5, width = 7.5, dpi = 300, units = "in")
+
+
+data2 <- as.data.frame(na.omit(cbind(SubIDs, BodyAv, CognitiveAv)))
+colnames(data2) <- c('SubIDs', 'Body', 'Cognitive')
+data_reshape2 <- gather(data2, key = "Type", value = "Rating", -SubIDs)
+custom_colors <- c("Body" = "#ff70a6", "Cognitive" = "#70d6ff")
+p2 <- ggplot(data_reshape2, aes(x = Type, y = Rating, fill = Type)) +
+  geom_flat_violin(aes(fill = Type), position = position_nudge(x = .2, y = 0), adjust = 1.5, trim = FALSE, alpha = .9, colour = NA, show.legend = FALSE, width = 1) +
+  geom_point(aes(x = Type, y = as.numeric(Rating) - .15, colour = Type), position = position_jitter(width = .075), size = 1, shape = 20, show.legend = FALSE) +
+  geom_boxplot(aes(x = Type, y = Rating, fill = Type), outlier.shape = NA, alpha = .5, width = .2, colour = "black", show.legend = FALSE) +
+  scale_fill_manual(values = custom_colors) +  # Set fill colors
+  scale_color_manual(values = custom_colors) +  # Set border (stroke) colors
+  ggtitle("Mind-Wandering Summaries") +
+  xlab("Avergae Rating") + # Set custom x-axis label
+  #ylab("") + # Set custom y-axis label
+  xlab(NULL) + # Remove bottom overall x-axis label
+  ylab("Average Rating") +
+  theme(panel.background = element_blank(),          # Remove gray background
+        axis.line = element_line(color = "black"),   # Retain x and y axis lines 
+        axis.text.x = element_text(size = 16),      # Increase size of x-axis labels
+        axis.text.y = element_text(size = 16),      # Increase size of y-axis labels
+        axis.title.y = element_text(size = 16, margin = margin(t = 0, r = 10, b = 0, l = 0)), # ,
+        plot.title = element_text(size = 20)) +
+  scale_x_discrete(expand = c(0.2, 0.15)
+)
+
+p2
+ggsave(here::here("figures", "BWaverages_raincloud.png"), height = 7.5, width = 7.5, dpi = 300, units = "in")
+
+
+```
+
+
+# Psych and Physio correlations with Mind-Wandering averages
+```{r}
+# Psych & Physio together (to correct multiple comparisons)
+cols = c("asrs.combined.sum", "mdi", "Heart Rate", "HRV RMSSD", "High Freq Power", "LF/HF Ratio", "Resp Rate", "Resp Duration Mean", "Resp Duration SD", "Resp Depth Mean", "Resp Depth SD", "Gastric Peak Freq", "Gastric Max Power", "Gastric Prop Power") #
+corrdata <- cbind(BodyAv, CognitiveAv, alldata[ ,cols]) # AffectDiff" select cols # lapply(names(corrdata), function(col_name) hist(corrdata[[col_name]], main = col_name)) 
+col2log <- c("mdi", "HRV RMSSD", "LF/HF Ratio", "Resp Duration SD", "Resp Depth SD", "Gastric Max Power")
+for (col in col2log) {
+  corrdata[ ,col] <- log(corrdata[ ,col] + 1)
+}
+corrdata[,3:ncol(corrdata)] <- corrdata[,3:ncol(corrdata)] %>% mutate_if(is.numeric, ~ifelse(abs(. - mean(., na.rm = TRUE)) > 3 * sd(., na.rm = TRUE), NA, .)) # remove outliers
+colnames(corrdata) <- c("Body-Wandering", "Cog-Wandering", "ADHD", "Depression", "Heart Rate", "HRV RMSSD", "High Freq Power", "LF/HF Ratio", "Resp Rate", "Resp Duration Mean", "Resp Duration SD", "Resp Depth Mean", "Resp Depth SD", "Gastric Peak Freq", "Gastric Max Power", "Gastric Prop Power") #, "Neg-Wandering",
+cormatrix_full(corrdata, "Body-Wandering Averages", "Averages & Physio Metric Correlations")
+cormatrix_selected(corrdata, "Body-Wandering Averages", "Physio Metrics", 2, 14, here::here("figures", "corr_BWaverages_PsychPhysio2.png"))
+
+# make bar also
+library(tidyr)
+library(dplyr)
+
+# Correlation plots
+cormatrix <- t(psych::corr.test(corrdata, method = "spearman", adjust = "fdr")$r[1:2, 3:16])
+#cor_pvals <- t(psych::corr.test(corrdata, method = "spearman", adjust = "fdr")$p[1:2, 3:16])
+
+cormatrix <- as.data.frame(cormatrix)
+cormatrix$Vars <- rownames(cormatrix)
+
+# Convert to long format
+cormatrix<- cormatrix %>%
+  pivot_longer(cols = -Vars, names_to = "Correlation", values_to = "Value") %>%
+  mutate(Vars = factor(Vars, levels = unique(Vars))) # Ensure the order is as desired
+
+
+# Step 1: Create a sorting frame based on positive correlations
+sort_order <- cormatrix %>%
+  dplyr::filter(Correlation == "Body-Wandering") %>%
+  dplyr::arrange(desc(Value)) %>%
+  dplyr::mutate(order = row_number()) %>%
+  dplyr::select(Vars, order) # Adjusted to ensure select is correctly applied
+
+# Step 2: Merge this order back into the original dataset
+cormatrix <- cormatrix %>%
+  left_join(sort_order, by = "Vars") %>%
+  mutate(Vars = factor(Vars, levels = sort_order$Vars)) # Reorder based on positive correlation
+
+# Step 3: Plot the data
+plot <- ggplot(cormatrix, aes(x = Vars, y = Value, fill = Correlation)) +
+  geom_col(position = position_dodge2(padding = 0.2), width = 1) +
+  coord_flip() +
+  theme_minimal() +
+  scale_fill_manual(values = c("Body-Wandering" = "#ff70a6", "Cog-Wandering" = "#70d6ff")) +
+  labs(y = "Spearman Coefficient", title = "Mind-Wandering Correlations") +
+  theme(
+    axis.title.y = element_text(size = 16),
+    axis.title.x = element_text(size = 16),
+    axis.text.y = element_text(size = 16, margin = margin(t = 0, r = 0, b = 0, l = 10, unit = "pt")),
+    axis.text.x = element_text(size = 16, margin = margin(t = 0, r = 0, b = 10, l = 0, unit = "pt")),
+    legend.text = element_text(size = 16),
+    legend.title = element_text(size = 15),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_blank(),
+    axis.line = element_line(colour = "black")
+  )
+
+print(plot)
+
+# Save the plot with specified dimensions
+ggsave(here::here("figures", "BWaverages_correlations.png"), plot, width = 9, height = 8, dpi = 300, bg = 'white')
+
+```
+
+# scatter plots
+```{r}
+
+# Psych & Physio together (to correct multiple comparisons)
+cols = c("asrs.combined.sum", "mdi", "Heart Rate", "HRV RMSSD", "High Freq Power", "LF/HF Ratio", "Resp Rate", "Resp Duration Mean", "Resp Duration SD", "Resp Depth Mean", "Resp Depth SD", "Gastric Peak Freq", "Gastric Max Power", "Gastric Prop Power") #
+corrdata <- cbind(BodyAv, CognitiveAv, AffectDiff, alldata[ ,cols]) #  select cols # lapply(names(corrdata), function(col_name) hist(corrdata[[col_name]], main = col_name)) 
+col2log <- c("mdi", "HRV RMSSD", "LF/HF Ratio", "Resp Duration SD", "Resp Depth SD", "Gastric Max Power")
+for (col in col2log) {
+  corrdata[ ,col] <- log(corrdata[ ,col] + 1)
+}
+corrdata[,4:ncol(corrdata)] <- corrdata[,4:ncol(corrdata)] %>% mutate_if(is.numeric, ~ifelse(abs(. - mean(., na.rm = TRUE)) > 3 * sd(., na.rm = TRUE), NA, .)) # remove outliers
+colnames(corrdata) <- c("Body-Wandering", "Cog-Wandering", "Neg-Wandering", "ADHD", "Depression", "Heart Rate", "HRV RMSSD", "High Freq Power", "LF/HF Ratio", "Resp Rate", "Resp Duration Mean", "Resp Duration SD", "Resp Depth Mean", "Resp Depth SD", "Gastric Peak Freq", "Gastric Max Power", "Gastric Prop Power") #
+cormatrix_full(corrdata, "Body-Wandering Averages", "Averages & Physio Metric Correlations")
+cormatrix_selected(corrdata, "Body-Wandering Averages", "Physio Metrics", 3, 14, here::here("figures", "corr_BWaverages_PsychPhysio.png"))
+
+cormatrix <- t(psych::corr.test(corrdata, method = "spearman", adjust = "fdr")$r[1:3, 4:17])
+cor_pvals <- t(psych::corr.test(corrdata, method = "spearman", adjust = "fdr")$p[1:3, 4:17])
+
+
+# # Select physio metrics - full cor matrix
+# cols = c("Heart Rate", "HRV RMSSD", "High Freq Power", "LF/HF Ratio", "Resp Rate", "Resp Duration Mean", "Resp Duration SD", "Resp Depth Mean", "Resp Depth SD", "Gastric Peak Freq", "Gastric Max Power", "Gastric Prop Power")
+# corrdata <- cbind(BodyAv, CognitiveAv, AffectDiff, alldata[ ,cols]) # select cols # lapply(names(corrdata), function(col_name) hist(corrdata[[col_name]], main = col_name)) 
+# col2log <- c("HRV RMSSD", "LF/HF Ratio" , "Resp Duration SD", "Resp Depth SD", "Gastric Max Power")
+# for (col in col2log) {
+#   corrdata[ ,col] <- log(corrdata[ ,col] + 1)
+# }
+# corrdata[ ,4:ncol(corrdata)] <- corrdata[ ,4:ncol(corrdata)] %>% mutate_if(is.numeric, ~ifelse(abs(. - mean(., na.rm = TRUE)) > 3 * sd(., na.rm = TRUE), NA, .)) # remove outliers
+# colnames(corrdata) <- c("Body-Wandering", "Cog-Wandering", "Neg-Wandering", "Heart Rate", "HRV RMSSD", "High Freq Power", "LF/HF Ratio", "Resp Rate", "Resp Duration Mean", "Resp Duration SD", "Resp Depth Mean", "Resp Depth SD", "Gastric Peak Freq", "Gastric Max Power", "Gastric Prop Power") 
+# cormatrix_full(corrdata, "Body-Wandering Averages", "Averages & Physio Metric Correlations")
+# cormatrix_selected(corrdata, "Body-Wandering Averages", "Physio Metrics", 3, 12, "~/Git/body_wandering/figures/Correlations/corr_BWaverages_Physio.png")
+
+# scatterplots
+p1 = scatterplot_gg(corrdata, 'Heart Rate', 'Body-Wandering', "#ff70a6")
+p2 = scatterplot_gg(corrdata, 'Heart Rate', 'Neg-Wandering', "#ffd670")
+p3 = scatterplot_gg(corrdata, 'HRV RMSSD', 'Body-Wandering', "#ff70a6")
+p4 = scatterplot_gg(corrdata, 'HRV RMSSD', 'Cog-Wandering', "#70d6ff")
+p5 = scatterplot_gg(corrdata, 'HRV RMSSD', 'Neg-Wandering', "#ffd670")
+p6 = scatterplot_gg(corrdata, 'Resp Depth SD', 'Body-Wandering', "#ff70a6")
+p7 = scatterplot_gg(corrdata, 'Resp Depth SD', 'Cog-Wandering', "#70d6ff")
+p8 = scatterplot_gg(corrdata, 'Resp Depth SD', 'Neg-Wandering', "#ffd670")
+p9 = scatterplot_gg(corrdata, 'Gastric Max Power', 'Body-Wandering', "#ff70a6")
+p10 = scatterplot_gg(corrdata, 'Gastric Max Power', 'Cog-Wandering', "#70d6ff")
+p11 = scatterplot_gg(corrdata, 'Gastric Max Power', 'Neg-Wandering', "#ffd670")
+scatter_plots_rank <- p3 + p4 + p5 + p6 + p7 + p8 + p9 + p10 + p11 + plot_layout(nrow = 3, ncol = 3)
+scatter_plots_rank
+ggsave(here::here("figures", "Scatterplots_BWaverages_Physio.png"), height = 10, width = 7.5, dpi = 300, units = "in")
+
+
+# # Select psych scores - full cor matrix
+# cols = c("asrs.combined.sum", "mdi")
+# corrdata <- cbind(BodyAv, CognitiveAv, AffectDiff, alldata[ ,cols]) # select cols # lapply(names(corrdata), function(col_name) hist(corrdata[[col_name]], main = col_name))
+# col2log <- c("mdi") 
+# for (col in col2log) {
+#   corrdata[ ,col] <- log(corrdata[ ,col] + 1) # Adding 1 to avoid taking the log of zero
+# }
+# corrdata[ ,4:ncol(corrdata)] <- corrdata[ ,4:ncol(corrdata)]  %>% mutate_if(is.numeric, ~ifelse(abs(. - mean(., na.rm = TRUE)) > 3 * sd(., na.rm = TRUE), NA, .)) # remove outliers
+# colnames(corrdata) <- c("Body-Wandering", "Cog-Wandering", "Neg-Wandering", 'ADHD', 'Depression') 
+# cormatrix_full(corrdata, "Body-Wandering Averages", "Averages & Psych Scores Correlations")
+# cormatrix_selected(corrdata, "Body-Wandering Averages", "Mental Health Scores", 3, 2, "~/Git/body_wandering/figures/Correlations/corr_BWaverages_PsychScores.png")
+
+# scatterplots
+p1 = scatterplot_gg(corrdata, 'ADHD', 'Body-Wandering', "#ff70a6") 
+p2 = scatterplot_gg(corrdata, 'ADHD', 'Cog-Wandering', "#70d6ff")
+p3 = scatterplot_gg(corrdata, 'Depression', 'Body-Wandering', "#ff70a6")
+p4 = scatterplot_gg(corrdata, 'Depression', 'Cog-Wandering', "#70d6ff")
+p5 = scatterplot_gg(corrdata, 'Depression', 'Neg-Wandering', "#ffd670")
+scatter_plots_rank <- p1 + p2 + p3 + p4 + plot_layout(nrow = 2, ncol = 2)
+scatter_plots_rank
+ggsave(here::here("figures", "Scatterplots_BWaverages_Psych.png"), height = 7, width = 5.25, dpi = 300, units = "in")
+
+p5
+ggsave(here::here("figures", "Scatterplots_BWaverages_DepressNegWander.png"), height = 3, width = 2.5, dpi = 300, units = "in")
+
+```
+
+# post-hoc item correlations
+```{r}
+
+# Select BW Items with psych scores (ADHD) - full cor matrix
+cols = c("Body", "Breath", "Heart", "Movement", "Bladder", "Skin", "Stomach", "Future", "Past", "Self", "Other", "asrs.combined.sum", "mdi")
+corrdata <- alldata[ ,cols]
+col2log <- c("mdi") 
+for (col in col2log) {
+  corrdata[ ,col] <- log(corrdata[ ,col] + 1) # Adding 1 to avoid taking the log of zero
+}
+corrdata[ ,12:ncol(corrdata)] <- corrdata[ ,12:ncol(corrdata)]  %>% mutate_if(is.numeric, ~ifelse(abs(. - mean(., na.rm = TRUE)) > 3 * sd(., na.rm = TRUE), NA, .)) # remove outliers
+colnames(corrdata) <- c("Body", "Breath", "Heart", "Movement", "Bladder", "Skin", "Stomach", "Future", "Past", "Self", "Other", "ADHD", "Depression")
+cormatrix_full(corrdata, "Body-Wandering Items", "ADHD & Depression Correlations") 
+cormatrix_selected(corrdata, "Body-Wandering Items", "ADHD & Depression", 11, 2, here::here("figures",  "corr_BWitems_ADHDdepression.png"))
+
+# scatterplots
+p1 = scatterplot_gg(corrdata, 'ADHD', 'Heart', "#ff70a6")
+p2 = scatterplot_gg(corrdata, 'ADHD', 'Bladder', "#ff70a6")
+p3 = scatterplot_gg(corrdata, 'ADHD', 'Skin', "#ff70a6")
+p4 = scatterplot_gg(corrdata, 'Depression', 'Past', "#70d6ff")
+p5 = scatterplot_gg(corrdata, 'Depression', 'Future', "#70d6ff")
+scatter_plots_rank <- p1 + p2 + p3 + p4 + p5 + plot_layout(nrow = 2, ncol = 3)
+scatter_plots_rank
+ggsave(here::here("figures", "Scatterplots_PostHoc_DepressADHD.png"), height = 7, width = 7.5, dpi = 300, units = "in")
+
+
+# Select BW Items with physio metrics - full cor matrix
+cols = c("Future", "Past", "Self", "Other", "Pos", "Neg", "Words", "Vivid", "Vague", "Spontaneous", "Focus", "Ruminate", "Distant", "Image", "Arousal", "Body", "Breath", "Heart", "Movement", "Bladder", "Skin", "Stomach", "Heart Rate", "HRV RMSSD", "High Freq Power", "LF/HF Ratio", "Resp Rate", "Resp Duration Mean", "Resp Duration SD", "Resp Depth Mean", "Resp Depth SD", "Gastric Peak Freq", "Gastric Max Power", "Gastric Prop Power")
+corrdata <- alldata[ ,cols]
+col2log <- c("HRV RMSSD", "LF/HF Ratio" , "Resp Duration SD", "Resp Depth SD", "Gastric Max Power")
+for (col in col2log) {
+  corrdata[ ,col] <- log(corrdata[ ,col] + 1)
+}
+corrdata[ ,23:ncol(corrdata)] <- corrdata[ ,23:ncol(corrdata)] %>% mutate_if(is.numeric, ~ifelse(abs(. - mean(., na.rm = TRUE)) > 3 * sd(., na.rm = TRUE), NA, .)) # remove outliers
+colnames(corrdata) <- c("Future", "Past", "Self", "Other", "Pos", "Neg", "Words", "Vivid", "Vague", "Spontaneous", "Focus", "Ruminate", "Distant", "Image", "Arousal", "Body", "Breath", "Heart", "Movement", "Bladder", "Skin", "Stomach", "Heart Rate", "HRV RMSSD", "High Freq Power", "LF/HF Ratio", "Resp Rate", "Resp Duration Mean", "Resp Duration SD", "Resp Depth Mean", "Resp Depth SD", "Gastric Peak Freq", "Gastric Max Power", "Gastric Prop Power") # rename to more concise/meaningful
+cormatrix_full(corrdata, "Body-Wandering Items", "Item & Physio Metric Correlations")
+cormatrix_selected(corrdata, "Body-Wandering Items", "Physio Metrics", 22, 12, here::here("figures", "corr_BWitems_Physio.png"))
+
+```
+
+# Posthoc Neg-wandering
+```{r}
+# Select BW Items with psych scores (ADHD) - full cor matrix
+cols = c("Neg", "Pos", "mdi")
+corrdata <- alldata[ ,cols]
+col2log <- c("mdi") 
+for (col in col2log) {
+  corrdata[ ,col] <- log(corrdata[ ,col] + 1) # Adding 1 to avoid taking the log of zero
+}
+corrdata[ ,3:ncol(corrdata)] <- corrdata[ ,3:ncol(corrdata)]  %>% mutate_if(is.numeric, ~ifelse(abs(. - mean(., na.rm = TRUE)) > 3 * sd(., na.rm = TRUE), NA, .)) # remove outliers
+colnames(corrdata) <- c("Neg", "Pos", "Depression")
+cormatrix_full(corrdata, "Neg-Wandering Items", "Depression Correlations") 
+
+scatterplot_gg(corrdata, 'Depression', 'Neg', "#ffd670")
+scatterplot_gg(corrdata, 'Depression', 'Pos', "#ffd670")
+
+```
+
+# Mind/Body-Wandering Averages with CCA variate
+```{r}
+BW_item_variate <- readMat("~/Git/body_wandering/figures/CCA/Abend216/BWitems/CCAvariate.mat")$P
+colnames(BW_item_variate) <- c('CCA.brain.variate', 'CCA.beh.variate')
+BWCCAs_subIDs <- readMat("~/Git/body_wandering/data/CCA_input/subIDs_BWCCAs.mat")$subIDs
+Summaries <- alldata[ ,c("participant_id", "Body-Wandering", "Cog-Wandering", "Neg-Wandering")]
+
+# # function for matching subIDs across diff datasets
+match_merge <- function(data1, data2, subIDs1, subIDs2, labels) {
+  reorder_idx <- match(subIDs1, subIDs2)
+  data2 <- data2[reorder_idx, ]
+
+  # merge data - CCA mode 1
+  merged <- cbind(data1, data2)
+  colnames(merged) <- labels
+  return(merged)
+}
+
+# match CCAvariates with Mind/Body-Wandering Averages
+corrdata <- match_merge(BW_item_variate, Summaries, BWCCAs_subIDs, as.numeric(substr(Summaries$participant_id, 5,8)), c(colnames(BW_item_variate), colnames(Summaries)))
+corrdata <- corrdata[,-which(names(corrdata) == "participant_id")]
+corrdata[] <- lapply(corrdata, function(x) if(is.character(x)) as.numeric(as.character(x)) else x) # change character cols to numerical
+
+#plot
+cormatrix_full(corrdata, "CCA Variate", "Mind-Wandering Summaries") 
+cormatrix_selected(corrdata, "CCA Variate", "Mind-Wandering Summaries", 2, 3, here::here("figures",  "corr_CCAvariate_BWaverages.png"))
+
+# scatterplots
+p1 = scatterplot_gg(corrdata, 'CCA.brain.variate', 'Body-Wandering', "#ff70a6")
+p2 = scatterplot_gg(corrdata, 'CCA.beh.variate', 'Body-Wandering', "#ff70a6")
+p3 = scatterplot_gg(corrdata, 'CCA.beh.variate', 'Cog-Wandering', "#70d6ff")
+scatter_plots_rank <- p1 + p2 + p3 + plot_layout(nrow = 1, ncol = 3)
+scatter_plots_rank
+ggsave(here::here("figures", "Scatterplots_CCAvariate_BWaverages.png"), height = 3.5, width = 7.5, dpi = 300, units = "in")
+
+```
+
