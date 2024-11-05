@@ -20,6 +20,7 @@ Access the preprint here: [https://www.biorxiv.org/content/10.1101/2024.10.25.62
 
 > Banellis, L., Nikolova, N., Brændholdt, M., Vejlø, M., Fardo, F., Smallwood, J., & Allen, M. G. (2024). Body-wandering reveals an embodied dimension of thought with distinct affective and neural signatures. *bioRxiv*, 2024-10.
 
+## Figures
 
 ![Body-Wandering & Cognitive-Wandering Relationships](figures/Final_Figures/Fig3_AverageAnalyses.png)
 
