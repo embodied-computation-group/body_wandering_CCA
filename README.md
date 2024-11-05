@@ -1,6 +1,6 @@
 # Body-wandering reveals an embodied dimension of thought with distinct affective and neural signatures
 
-**Authors:** Leah Banellis, Niia Nikolova, Malthe Brændholdt, Melina Vejlø, Francesca Fardo, Jonathan Smallwood, Micah G. Allen
+Leah Banellis, Niia Nikolova, Malthe Brændholdt, Melina Vejlø, Francesca Fardo, Jonathan Smallwood, Micah G. Allen
 
 ---
 
