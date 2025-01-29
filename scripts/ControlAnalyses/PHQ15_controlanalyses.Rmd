@@ -1,0 +1,154 @@
+---
+title: "PHQ15_controlanalyses"
+output: html_document
+date: "2025-01-27"
+---
+
+# load mind-wandering summary scores & phq15 for information of pain/discomfort
+```{r}
+# clean slate to be sure
+rm(list = ls())
+
+# check for pacman package and install if not found
+if (!require("pacman")) install.packages("pacman")
+  pacman::p_load(tidyverse, here, corrplot, ggcorrplot, heatmap3, patchwork, cowplot, ggpubr, R.matlab, dplyr)
+
+# read item ratings & make summary scores
+alldata <- read_csv("~/Git/body_wandering/data/BodyWanderingData.csv")
+BodyAv <- rowMeans(alldata[ ,c("Body", "Breath", "Heart", "Movement", "Bladder", "Skin", "Stomach")])  
+CognitiveAv <- rowMeans(alldata[ ,c("Future", "Past", "Self", "Other")]) 
+AffectDiff <- as.numeric(unlist((alldata[ ,c("Neg")] - alldata[ ,c("Pos")])))  # positive diff score = more neg thoughts (negative diff score = more pos thoughts) 
+MWsummaries <- cbind(BodyAv, CognitiveAv, AffectDiff)
+
+# load phq15 survey (includes items on pain & discomfort)
+#phq15 <- read_tsv('/mnt/raid0/scratch/BIDS/phenotype/phq15/phq15.tsv')
+#phq15[ ,5:19] <- lapply(phq15[ ,5:19], as.numeric) # select questions only??
+# total/sum score of phq15
+phq15score <- read_tsv('/mnt/raid0/scratch/BIDS/derivatives/summaries/survey/summary_scores/grand/grand_surveyscores_summary.tsv')[ ,c('participant_id', 'phq15')]
+phq15score$phq15 <- as.numeric(phq15score$phq15)
+
+# match and merge the relevant variables of interest
+match_merge <- function(data1, data2, subIDs1, subIDs2, labels) {
+  reorder_idx <- match(subIDs1, subIDs2)
+  data2 <- data2[reorder_idx, ]
+
+  # merge data across dataframes
+  merged <- cbind(data1, data2)
+  colnames(merged) <- labels
+  return(merged)
+}
+
+RegressionData <- match_merge(phq15score, MWsummaries, phq15score$participant_id, alldata$participant_id, c(colnames(phq15score), colnames(MWsummaries)))
+
+```
+
+# Regress phq15 from summary scores & recompute Psych and Physio correlations with Mind-Wandering averages
+```{r}
+# Ensure exclude NA so participant order is maintained
+BodyAv_res <- residuals(lm(RegressionData$BodyAv ~ RegressionData$phq15, na.action = na.exclude))
+CognitiveAv_res <- residuals(lm(RegressionData$CognitiveAv ~ RegressionData$phq15, na.action = na.exclude))
+AffectDiff_res <- residuals(lm(RegressionData$AffectDiff ~ RegressionData$phq15, na.action = na.exclude))
+
+# Combine residuals with participant IDs
+adjusted_scores <- data.frame(
+  participant_id = RegressionData$participant_id,
+  BodyAv_adj = BodyAv_res,
+  CognitiveAv_adj = CognitiveAv_res,
+  AffectDiff_adj = AffectDiff_res
+)
+
+
+cormatrix_full <- function(cordata, title, subtitle) {
+  pval_fdr <- psych::corr.test(cordata, method = "spearman", adjust = "fdr")$p
+  rval_fdr <- psych::corr.test(cordata, method = "spearman", adjust = "fdr")$r
+  cp1 <- ggcorrplot(rval_fdr, p.mat = pval_fdr, hc.order=FALSE,
+             type='full', insig='blank', method = "square", sig.level = 0.05, #circle?
+             outline.col = "black",
+            # lab = TRUE,
+             ggtheme = ggplot2::theme_minimal,
+             tl.cex = 8,
+             colors = c("#6D9EC1", "white", "#EA5F21FF")) +
+    geom_hline(yintercept = ncol(rval_fdr)+.5, linetype = 3, size = 1) +
+    geom_vline(xintercept = .5, linetype = 3, size = 1) +
+    geom_abline(intercept = 0, slope = 1, linetype = 3, size = 1) +
+    ggtitle(title) +
+    labs(subtitle = subtitle)
+  
+  cp1 
+}
+
+# merge correlation data (physio metrics & mental health) with adjusted mind-wandering summary scores
+cordata <- alldata[ ,c("asrs.combined.sum", "mdi", "Heart Rate", "HRV RMSSD", "High Freq Power", "LF/HF Ratio", "Resp Rate", "Resp Duration Mean", "Resp Duration SD", "Resp Depth Mean", "Resp Depth SD", "Gastric Peak Freq", "Gastric Max Power", "Gastric Prop Power")]
+cordata <- match_merge(adjusted_scores[ ,2:3], cordata, adjusted_scores$participant_id, alldata$participant_id, c(colnames(adjusted_scores[ ,2:3]), colnames(cordata)))
+col2log <- c("mdi", "HRV RMSSD", "LF/HF Ratio", "Resp Duration SD", "Resp Depth SD", "Gastric Max Power")
+for (col in col2log) {
+  cordata[ ,col] <- log(cordata[ ,col] + 1)
+}
+cordata[,3:ncol(cordata)] <- cordata[,3:ncol(cordata)] %>% mutate_if(is.numeric, ~ifelse(abs(. - mean(., na.rm = TRUE)) > 3 * sd(., na.rm = TRUE), NA, .)) # remove outliers
+colnames(cordata) <- c("Body-Wandering", "Cog-Wandering", "ADHD", "Depression", "Heart Rate", "HRV RMSSD", "High Freq Power", "LF/HF Ratio", "Resp Rate", "Resp Duration Mean", "Resp Duration SD", "Resp Depth Mean", "Resp Depth SD", "Gastric Peak Freq", "Gastric Max Power", "Gastric Prop Power") #, "Neg-Wandering",
+cormatrix_full(cordata, "Body-Wandering Averages", "Averages & Physio Metric Correlations")
+
+
+# make bar also
+library(tidyr)
+library(dplyr)
+
+# Correlation plots
+cormatrix <- t(psych::corr.test(cordata, method = "spearman", adjust = "fdr")$r[1:2, 3:16])
+#cor_pvals <- t(psych::corr.test(corrdata, method = "spearman", adjust = "fdr")$p[1:2, 3:16])
+
+cormatrix <- as.data.frame(cormatrix)
+cormatrix$Vars <- rownames(cormatrix)
+
+# Convert to long format
+cormatrix<- cormatrix %>%
+  pivot_longer(cols = -Vars, names_to = "Correlation", values_to = "Value") %>%
+  mutate(Vars = factor(Vars, levels = unique(Vars))) # Ensure the order is as desired
+
+
+# Step 1: Create a sorting frame based on positive correlations
+sort_order <- cormatrix %>%
+  dplyr::filter(Correlation == "Body-Wandering") %>%
+  dplyr::arrange(desc(Value)) %>%
+  dplyr::mutate(order = row_number()) %>%
+  dplyr::select(Vars, order) # Adjusted to ensure select is correctly applied
+
+# Step 2: Merge this order back into the original dataset
+cormatrix <- cormatrix %>%
+  left_join(sort_order, by = "Vars") %>%
+  mutate(Vars = factor(Vars, levels = sort_order$Vars)) # Reorder based on positive correlation
+
+# Step 3: Plot the data
+plot <- ggplot(cormatrix, aes(x = Vars, y = Value, fill = Correlation)) +
+  geom_col(position = position_dodge2(padding = 0.2), width = 1) +
+  coord_flip() +
+  theme_minimal() +
+  scale_fill_manual(values = c("Body-Wandering" = "#ff70a6", "Cog-Wandering" = "#70d6ff")) +
+  labs(y = "Spearman Coefficient", title = "Mind-Wandering Correlations") +
+  theme(
+    axis.title.y = element_text(size = 16),
+    axis.title.x = element_text(size = 16),
+    axis.text.y = element_text(size = 16, margin = margin(t = 0, r = 0, b = 0, l = 10, unit = "pt")),
+    axis.text.x = element_text(size = 16, margin = margin(t = 0, r = 0, b = 10, l = 0, unit = "pt")),
+    legend.text = element_text(size = 16),
+    legend.title = element_text(size = 15),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_blank(),
+    axis.line = element_line(colour = "black")
+  )
+
+print(plot)
+
+# Save the plot with specified dimensions
+ggsave(here::here("figures/Indiv_Figures/ControlAnalyses/", "BWaverages_phq15_correlations.png"), plot, width = 9, height = 8, dpi = 300, bg = 'white')
+
+
+```
+
+## ..
+
+```{r}
+
+
+```

@@ -440,10 +440,10 @@ circos.clear
 #source('~/Git/body_wandering/rcode/CCA_Chordplot/chordplot_Abend216.R')
 
 # variables for function
-cca_filename <- "/home/leah/Git/body_wandering/figures/CCA/Abend216/BWitems/brainweights.mat" 
+cca_filename <- "/home/leah/Git/body_wandering/figures/CCA/Abend216/BWitems/brainweights.mat" #"/home/leah/Git/BodyWanderingCCA/figures/Indiv_Figures/ControlAnalyses/phq15nuissance/CCA/brainloadings.mat" #
 threshold_percentile <- 0.99
 chord2plot <- 1
-savepath = "~/Git/body_wandering/figures/CCA/Abend216/BWitems/" 
+savepath = "~/Git/body_wandering/figures/CCA/Abend216/BWitems/"  #"/home/leah/Git/BodyWanderingCCA/figures/Indiv_Figures/ControlAnalyses/phq15nuissance/CCA/" # 
 region_labels = atlas_labels$short_labels #merged_labels
 network_labels = yeo7
 
