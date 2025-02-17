@@ -1,0 +1,11 @@
+---
+title: "poweranalysis"
+output: html_document
+date: "2025-02-17"
+---
+
+```{r setup, include=FALSE}
+
+
+
+```
