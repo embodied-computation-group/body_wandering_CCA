@@ -1,0 +1,572 @@
+---
+title: "MDIES_validitiy_reliability"
+output: html_document
+date: "2025-02-19"
+---
+
+
+**Import post-resting-state mind-wandering data**
+```{r, message=FALSE}
+
+# clean slate to be sure
+rm(list = ls())
+
+# check for pacman package and install if not found
+if (!require("pacman")) install.packages("pacman")
+  pacman::p_load(readr,psych,polycor,corrplot,lattice,nFactors,GPArotation,EFA.dimensions,dplyr, tidyverse, here, circlize, BiocManager, ComplexHeatmap, reshape2, ggcorplot)
+
+rest_probes <- read_csv("/home/leah/Git/BodyWanderingCCA/data/rest_probes.csv")
+rest_probes <- na.omit(rest_probes)
+rest_probes <- apply(as.matrix(rest_probes[ ,2:ncol(rest_probes)]), 2, as.numeric) #convert to numeric matrix
+
+hist(rest_probes)
+
+```
+
+
+**Test assumptions of rest mind-wandering data for EFA**
+```{r}
+# Watkins et al., 2018 https://journals.sagepub.com/doi/full/10.1177/0095798418771807
+# view correlation matrix of items (needs relatively high correlations among items for FA)
+# sizable number of correlations should exceed ±.30
+
+sample_size = sum(complete.cases(rest_probes))
+
+# Correlation plots
+cormatrix = hetcor(rest_probes)$correlations
+corrplot(cormatrix, method="circle", addrect = 0,
+         title = "RestProbes", mar = c(0,0,1,0),tl.cex=0.9) 
+
+
+# Bartlett’s Test of Sphericity (relationship strength/multivariate normality)
+# ^statistically significant chi-square value to justify the application of EFA.
+cortest.bartlett(cormatrix,sample_size)
+
+# Kaiser-Meyer-Olkin test for sampling adequacy
+# Overall KMO values ≥.70 are desired, values less than .50 are generally considered unacceptable
+KMO(cormatrix)
+
+# remove spontaneous as KMO <.5
+rest_probes = subset(rest_probes, select = -c(Spontaneous))
+
+# run tests again without spontaneous item
+cormatrix = hetcor(rest_probes)$correlations
+cortest.bartlett(cormatrix,sample_size)
+KMO(cormatrix)
+
+# Internal Reliability of MDIES
+reliability <- psych::alpha(rest_probes, check.keys=TRUE)
+cat("Cronbach's Alpha (Raw):", reliability$total$raw_alpha, "\n")
+cat("Cronbach's Alpha (Standardized):", reliability$total$std.alpha, "\n")
+
+omega_results <- psych::omega(rest_probes)
+cat("Omega Total (ωt):", omega_results$omega.tot, "\n")
+
+```
+
+
+**Determine number of factors**
+```{r, message=FALSE}
+
+# manual screeplot example:
+ev <- eigen(hetcor(rest_probes)$correlations)
+ap <- parallel(subject=sample_size,var=ncol(rest_probes),
+               rep=100,cent=.05)
+nS <- nScree(x=ev$values, aparallel=ap$eigen$qevpea)
+plotnScree(nS)
+
+sprintf("Parallel Analysis recommends %s factors",nS$Components$nparallel)
+
+# Minimum Average Partial (MAP) test
+MAP_results = MAP(rest_probes, corkind='pearson', verbose=FALSE)
+sprintf("MAP recommends %s (1976) or %s (2000) factors",MAP_results$NfactorsMAP,MAP_results$NfactorsMAP4) #MAP_results$NfactorsMAP (1976 MAP test), MAP_results$NfactorsMAP4 (revised 2000 MAP test)
+
+
+# nFactors function (multiple factor estimates):
+nfactors((hetcor(rest_probes)$correlations), n.obs=sample_size)
+
+```
+
+
+# conduct EFA, oblimin, principal axis
+```{r}
+colnames(rest_probes)[colnames(rest_probes) == "Ruminate"] <- "Repetitive" #rename as requested by reviewer
+
+fa.restResults =fa(
+  (hetcor(rest_probes)$correlations), 
+  nfactors = MAP_results$NfactorsMAP4, # MAP (2000) suggests 2
+  n.obs=sample_size, #specify number of observations 
+  rotate = "oblimin",
+  max.iter=500, # (50 is default)
+  fm="pa") # Principal axis doesn't make distribution assumptions ("ml" does)
+
+print(fa.restResults)
+print(fa.restResults$Vaccounted)
+fa.diagram(fa.restResults)
+
+
+# Fit indices
+chi_sq <- fa.restResults$STATISTIC
+p_value <- fa.restResults$PVAL
+cat("Chi-Square:", chi_sq, "\nP-Value:", p_value, "\n")
+CFI <- 1 - ((chi_sq - fa.restResults$dof) / (fa.restResults$null.chisq - fa.restResults$null.dof))
+cat("CFI:", CFI, "\n")
+
+
+# plot loadings (thresholded at 0.3)
+plot_thresholded_loadings <- function(fa_result, threshold = 0.3, title = "EFA Loadings (Thresholded > absolute 0.3)") {
+  # Extract loadings and prepare dataframe
+  loadings_matrix <- as.data.frame(unclass(fa_result$loadings))
+  colnames(loadings_matrix) <- paste0("Factor ", seq_len(ncol(loadings_matrix)))
+  loadings_matrix$Item <- rownames(loadings_matrix)
+  
+  # Sort by first factor's loading
+  first_comp <- colnames(loadings_matrix)[1]
+  loadings_sorted <- loadings_matrix %>%
+    arrange(desc(.data[[first_comp]]))
+  
+  # Apply threshold
+  loadings_thresholded <- loadings_sorted %>%
+    mutate(across(-Item, ~ ifelse(abs(.) < threshold, NA, .)))
+  
+  # Convert to long format
+  loadings_long <- melt(loadings_thresholded, id.vars = "Item",
+                        variable.name = "Factor", value.name = "Loading")
+  loadings_long <- na.omit(loadings_long)
+  loadings_long$Item <- factor(loadings_long$Item, levels = loadings_sorted$Item)
+  
+  # Plot heatmap
+  p <- ggplot(loadings_long, aes(x = Factor, y = Item, fill = Loading)) +
+    geom_tile(color = "grey90") +
+    scale_fill_gradient2(low = "blue", mid = "white", high = "red", midpoint = 0,
+                         name = "Loading") +
+    theme_minimal() +
+    theme(
+      axis.text.y = element_text(size = 10),
+      axis.text.x = element_text(size = 10, face = "bold"),
+      axis.title.x = element_text(size = 12, face = "bold"),
+      axis.title.y = element_text(size = 12, face = "bold"),
+      plot.title = element_text(size = 14, face = "bold"),
+      panel.background = element_rect(fill = "white", colour = NA),
+      plot.background = element_rect(fill = "white", colour = NA)
+    ) +
+    labs(title = title, x = "Factor", y = "Item") 
+  print(p)
+  
+  #ggsave("~/Git/BodyWanderingCCA/figures/Indiv_Figures/ControlAnalyses/EFA/efa_loadings_thresholded.png", plot = p, width = 8, height = 6, dpi = 300)
+
+}
+
+# Plot thresholded loadings
+plot_thresholded_loadings(fa.restResults, threshold = 0.3)
+
+
+# # correlate factors
+# scores<-factor.scores(rest_probes, fa.restResults, method = "Bartlett")
+# scores<-as.data.frame(scores$scores)
+# psych::corr.test(scores, method = "spearman", adjust = "fdr")
+
+```
+
+
+# EFA loading table
+```{r}
+
+library(psych)
+library(knitr)
+library(kableExtra)
+library(dplyr)
+
+# Assume fa.restResults is the EFA result from fa(..., rotate = "oblimin")
+# Extract the loadings matrix and convert to a data frame
+loadings_df <- as.data.frame(unclass(fa.restResults$loadings))
+loadings_df$Item <- rownames(loadings_df)
+
+# Reorder columns so that "Item" is first
+loadings_df <- loadings_df[, c("Item", setdiff(names(loadings_df), "Item"))]
+rownames(loadings_df) <- NULL
+colnames(loadings_df) <- c('Item', 'Factor 1', 'Factor 2')
+
+# Define threshold value
+threshold <- 0.3
+
+# Format loadings: 
+# - Bold for values ≥ |0.3|
+# - Light grey for values < |0.3|
+formatted_loadings <- loadings_df %>%
+  mutate(across(-Item, ~ ifelse(abs(.) >= threshold, 
+                                cell_spec(round(., 2), format = "html", bold = TRUE), 
+                                cell_spec(round(., 2), format = "html", color = "gray"))))
+
+# Create and display the formatted table
+kable(formatted_loadings, format = "html", escape = FALSE, caption = "EFA Loadings (Thresholded at |0.3|)") %>%
+  kable_styling(full_width = FALSE, bootstrap_options = c("striped", "hover"))
+
+
+```
+
+# robustness of EFA
+```{r}
+
+run_efa_pipeline <- function(data, label = "Dataset") {
+  
+  # Compute correlation matrix (polychoric)
+  cormatrix <- hetcor(data)$correlations
+  sample_size <- nrow(data)
+  
+  # Run EFA
+  fa_result <- fa(
+    cormatrix, 
+    nfactors = 2, # MAP 
+    n.obs = sample_size,
+    rotate = "oblimin",
+    max.iter = 500,
+    fm = "pa"
+  )
+  print(fa_result)
+  fa.diagram(fa_result)
+  
+  # Fit indices
+  chi_sq <- fa_result$STATISTIC
+  p_value <- fa_result$PVAL
+  cat("Chi-Square:", chi_sq, "\nP-Value:", p_value, "\n")
+  CFI <- 1 - ((chi_sq - fa_result$dof) / (fa_result$null.chisq - fa_result$null.dof))
+  cat("CFI:", CFI, "\n")
+  
+  # Plot thresholded loadings
+  plot_thresholded_loadings(fa_result, threshold = 0.3, title = paste("Loadings (", label, ")", sep = ""))
+  
+  return(fa_result)
+}
+
+# split into odd & even rows
+rest_probes_odd <- rest_probes[seq(1, nrow(rest_probes), by = 2), ]
+rest_probes_even <- rest_probes[seq(2, nrow(rest_probes), by = 2), ]
+
+# Run EFA on both datasets
+fa_odd <- run_efa_pipeline(rest_probes_odd, label = "Odd-indexed Rows")
+fa_even <- run_efa_pipeline(rest_probes_even, label = "Even-indexed Rows")
+
+
+# Compare correlations of factor loadings across even and odd split
+
+# Correlation of loadings on each factor across splits
+cor_factor1 <- cor(fa_even$loadings[,1], fa_odd$loadings[,1])
+cor_factor2 <- cor(fa_even$loadings[,2], fa_odd$loadings[,2])
+
+cat("Factor 1 loading correlation:", round(cor_factor1, 3), "\n")
+cat("Factor 2 loading correlation:", round(cor_factor2, 3), "\n")
+
+```
+
+
+# Correlate factors/communities/averages with MAIA
+```{r}
+# factor scores EFA
+factor_scores<-factor.scores(rest_probes, fa.restResults, method = "Bartlett")
+factor_scores<-as.data.frame(factor_scores$scores)
+
+subids <- read_tsv("/home/leah/Git/BodyWanderingCCA/data/mindwand_movieratings.tsv")
+subids[subids == "n/a"] <- NA 
+subids <- subids[complete.cases(subids$RS_MW_1), 'participant_id']
+
+#factor_scores$participant_id <- subids$participant_id
+#write.csv(factor_scores, "~/Git/BodyWanderingCCA/data/2factEFA_scores.csv", row.names = FALSE)
+
+# mean score of MAIA
+maia_score <- read_tsv('/mnt/raid0/scratch/BIDS/derivatives/summaries/survey/summary_scores/grand/grand_surveyscores_summary.tsv')[ ,c('participant_id', 'maia_full_mean')] #'maia_notice', 'maia_ndistract', 'maia_nworry', 'maia_attnReg', 'maia_EmoAware', 'maia_SelfRef', 'maia_listen', 'maia_trust', 
+maia_score[, 2:ncol(maia_score)] <- apply(maia_score[, 2:ncol(maia_score)], 2, as.numeric)
+
+# match and merge the relevant variables of interest
+match_merge <- function(data1, data2, subIDs1, subIDs2, labels) {
+  reorder_idx <- match(subIDs1, subIDs2)
+  data2 <- data2[reorder_idx, ]
+
+  # merge data across dataframes
+  merged <- cbind(data1, data2)
+  colnames(merged) <- labels
+  return(merged)
+}
+
+# merge factor scores with maia mean score
+maia_corr <- match_merge(maia_score[ ,2:ncol(maia_score)], factor_scores, maia_score$participant_id, as.character(subids[[1]]), c(colnames(maia_score[ ,2:ncol(maia_score)]), 'Factor1', 'Factor2'))
+
+
+# body/cog averages
+BodyAv <- rowMeans(rest_probes[ ,c("Body", "Breath", "Heart", "Movement", "Bladder", "Skin", "Stomach")])  
+CognitiveAv <- rowMeans(rest_probes[ ,c("Future", "Past", "Self", "Other")]) 
+MWsummaries <- cbind(BodyAv, CognitiveAv)
+
+# merge averages with everything
+maia_corr <- match_merge(maia_corr, MWsummaries, maia_score$participant_id, as.character(subids[[1]]), c(colnames(maia_corr), 'BodyAvergae', 'CogAverage'))
+
+
+
+# # average items in network communities
+# subject_community_scores <- data.frame(Subject = seq_len(nrow(rest_probes)))
+# community_membership <- c(1, 1, 2, 2, 2, 3, 2, 4, 1, 1, 2, 4, 1, 3, 5, 1, 3, 5, 3, 3, 3)
+# names(community_membership) <- colnames(rest_probes)
+# # Loop through each community and compute subject-level scores
+# for (comm in unique(community_membership)) {
+#   items_in_community <- names(community_membership[community_membership == comm])
+#   print(items_in_community)
+#   subject_community_scores[[paste0("Community_", comm)]] <- rowMeans(rest_probes[, items_in_community, drop=FALSE], na.rm=TRUE)
+# }
+# # colnames(subject_community_scores) <- c("Subject", "BreathTemporalityImageryFocus", "PositivePersonhoodRuminate", "NegativeInternal", "VividDistance", "BodyMovement")
+# 
+# # merge communities with everything
+# maia_corr <- match_merge(maia_corr, subject_community_scores[ ,2:6], maia_score$participant_id, as.character(subids[[1]]), c(colnames(maia_corr), colnames(subject_community_scores[ ,2:6])))
+
+# CCA variates
+BW_item_variate <- readMat("~/Git/body_wandering/figures/CCA/Abend216/BWitems/CCAvariate.mat")$P
+colnames(BW_item_variate) <- c('CCA.brain.variate', 'CCA.beh.variate')
+BWCCAs_subIDs <- readMat("~/Git/body_wandering/data/CCA_input/subIDs_BWCCAs.mat")$subIDs
+
+maia_corr <- match_merge(maia_corr, BW_item_variate, as.numeric(sub("sub-", "", maia_score$participant_id)), BWCCAs_subIDs, c(colnames(maia_corr), colnames(BW_item_variate)))
+
+
+cormatrix_full <- function(cordata, title, subtitle) {
+  pval_fdr <- psych::corr.test(cordata, method = "spearman", adjust = "fdr")$p
+  rval_fdr <- psych::corr.test(cordata, method = "spearman", adjust = "fdr")$r
+  cp1 <- ggcorrplot(rval_fdr, p.mat = pval_fdr, hc.order=FALSE,
+             type='full', insig='blank', method = "square", sig.level = 0.05, #circle?
+             outline.col = "black",
+            # lab = TRUE,
+             ggtheme = ggplot2::theme_minimal,
+             tl.cex = 8,
+             colors = c("#6D9EC1", "white", "#EA5F21FF")) +
+    geom_hline(yintercept = ncol(rval_fdr)+.5, linetype = 3, size = 1) +
+    geom_vline(xintercept = .5, linetype = 3, size = 1) +
+    geom_abline(intercept = 0, slope = 1, linetype = 3, size = 1) +
+    ggtitle(title) +
+    labs(subtitle = subtitle)
+  
+  cp1 
+}
+
+cormatrix_full(maia_corr, 'correlations with MAIA', 'Spearman correlations')
+psych::corr.test(maia_corr, method = "spearman", adjust = "fdr")$r
+
+```
+
+```{r}
+
+cormatrix_selected <- function(cordata, xlabel, ylabel, xnum, ynum, savepath) {
+  # Correlation plots
+  cormatrix <- t(psych::corr.test(cordata, method = "spearman", adjust = "fdr")$r[1:xnum, (xnum+1):(xnum+ynum)]) #[(xnum+1):(xnum+ynum), 1:xnum]
+  cor_pvals <- t(psych::corr.test(cordata, method = "spearman", adjust = "fdr")$p[1:xnum, (xnum+1):(xnum+ynum)])
+  png(filename = savepath, res = 300, height = ((ynum*2)+2), width = 40, units = "cm") # width for factors
+  # Plot the correlation matrix with significance markers
+  corrplot::corrplot(cormatrix,
+                     method = "color",
+                     addCoef.col = 'black',
+                     cl.pos = 'n',
+                     col.lim = c(min(cormatrix), max(cormatrix)),
+                     tl.col = "black",
+                     col = colorRampPalette(c("blue", "white", "red"))(100),
+                     p.mat = cor_pvals,
+                     sig.level = 0.05,
+                     insig="blank",
+                     mar = c(0, 0, 1.75, 0)
+                     )$corrPos -> p1
+  #text(p1$x, p1$y, round(p1$corr, 2))
+  
+  # Draw a rectangle around the entire correlation matrix
+  rect(0.5, 0.5, ncol(cormatrix) + 0.5, nrow(cormatrix) + 0.5, border = "black", lwd = 2)
+  dev.off()
+}
+
+corrdata <- maia_corr[ ,c("BodyAvergae", "CogAverage", "Factor1", "Factor2", "CCA.brain.variate", "CCA.beh.variate")] #"BreathTemporalityImageryFocus", "PositivePersonhoodRuminate", "NegativeInternal", "VividDistance", "BodyMovement",
+colnames(corrdata) <- c("Body Avergae", "Cognitive Average", "EFA Factor1", "EFA Factor2", "CCA BrainVariate", "CCA MindwandVariate") #, "Network BreathTemporalityImageryFocus", "Network PositivePersonhoodRuminate", "Network NegativeInternal", "Network VividDistance", "Network BodyMovement"
+cormatrix_selected(corrdata, "Body-Wandering Averages", "Latent Variables", 2, 4, "~/Git/BodyWanderingCCA/figures/Indiv_Figures/ControlAnalyses/MWaverage_corr/corr_BWaverages_LatentVars2.png")
+
+cormatrix_full(corrdata, 'correlations latent variables', 'Spearman correlations')
+
+```
+
+
+
+```{r}
+
+# factor scores EFA
+factor_scores<-factor.scores(rest_probes, fa.restResults, method = "Bartlett")
+factor_scores<-as.data.frame(factor_scores$scores)
+colnames(factor_scores) <- c('Factor 1', 'Factor 2')
+
+# Combine subids with factor_scores & save csv
+#write.csv(data.frame(subids = subids, factor_scores), "~/Git/BodyWanderingCCA/data/EFAscores.csv", row.names = FALSE)
+
+# subids <- read_tsv("/home/leah/Git/BodyWanderingCCA/data/mindwand_movieratings.tsv")
+# subids[subids == "n/a"] <- NA 
+# subids <- subids[complete.cases(subids$RS_MW_1), 'participant_id']
+# alldata <- read_csv("~/Git/body_wandering/data/BodyWanderingData.csv")$participant_id
+# check order of participants in alldata is same participant order in efa scores
+#identical(alldata$participant_id, subids$participant_id)
+
+# Psych & Physio together (to correct multiple comparisons)
+alldata <- read_csv("~/Git/body_wandering/data/BodyWanderingData.csv")
+cols = c("asrs.combined.sum", "mdi", "Heart Rate", "HRV RMSSD", "High Freq Power", "LF/HF Ratio", "Resp Rate", "Resp Duration Mean", "Resp Duration SD", "Resp Depth Mean", "Resp Depth SD", "Gastric Peak Freq", "Gastric Max Power", "Gastric Prop Power")
+alldata <- alldata[complete.cases(alldata[, c("Future")]), ][ ,cols] #NAs in Future is same as all mind-wandering item
+
+# merge data
+corrdata <- cbind(factor_scores, alldata) 
+
+col2log <- c("mdi", "HRV RMSSD", "LF/HF Ratio", "Resp Duration SD", "Resp Depth SD", "Gastric Max Power")
+for (col in col2log) {
+  corrdata[ ,col] <- log(corrdata[ ,col] + 1)
+}
+corrdata[,3:ncol(corrdata)] <- corrdata[,3:ncol(corrdata)] %>% mutate_if(is.numeric, ~ifelse(abs(. - mean(., na.rm = TRUE)) > 3 * sd(., na.rm = TRUE), NA, .)) # remove outliers
+
+
+
+# make bar also
+library(tidyr)
+library(dplyr)
+
+# Correlation plots
+cormatrix <- t(psych::corr.test(corrdata, method = "spearman", adjust = "fdr")$r[1:2, 3:16])#[2:3, 6:19]
+cor_pvals <- t(psych::corr.test(corrdata, method = "spearman", adjust = "fdr")$p[1:2, 3:16])
+cor_pvals[cor_pvals > 0.05] <- NA 
+
+cormatrix <- as.data.frame(cormatrix)
+cormatrix$Vars <- rownames(cormatrix)
+
+# Convert to long format
+cormatrix<- cormatrix %>%
+  pivot_longer(cols = -Vars, names_to = "Correlation", values_to = "Value") %>%
+  mutate(Vars = factor(Vars, levels = unique(Vars))) # Ensure the order is as desired
+
+
+# Step 1: Create a sorting frame based on positive correlations
+sort_order <- cormatrix %>%
+  dplyr::filter(Correlation == "Factor 1") %>%
+  dplyr::arrange(desc(Value)) %>%
+  dplyr::mutate(order = row_number()) %>%
+  dplyr::select(Vars, order) # Adjusted to ensure select is correctly applied
+
+# Step 2: Merge this order back into the original dataset
+cormatrix <- cormatrix %>%
+  left_join(sort_order, by = "Vars") %>%
+  mutate(Vars = factor(Vars, levels = sort_order$Vars)) # Reorder based on positive correlation
+
+# Step 3: Plot the data
+plot <- ggplot(cormatrix, aes(x = Vars, y = Value, fill = Correlation)) +
+  geom_col(position = position_dodge2(padding = 0.2), width = 1) +
+  coord_flip() +
+  theme_minimal() +
+  scale_fill_manual(values = c("Factor 1"= "coral", "Factor 2" = "deepskyblue")) +
+  labs(y = "Spearman Coefficient", title = "Mind-Wandering Correlations") +
+  theme(
+    axis.title.y = element_text(size = 16),
+    axis.title.x = element_text(size = 16),
+    axis.text.y = element_text(size = 16, margin = margin(t = 0, r = 0, b = 0, l = 10, unit = "pt")),
+    axis.text.x = element_text(size = 16, margin = margin(t = 0, r = 0, b = 10, l = 0, unit = "pt")),
+    legend.text = element_text(size = 16),
+    legend.title = element_text(size = 15),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_blank(),
+    axis.line = element_line(colour = "black")
+  )
+
+print(plot)
+
+# Save the plot with specified dimensions
+ggsave("~/Git/BodyWanderingCCA/figures/Indiv_Figures/ControlAnalyses/EFA/EFAfactors_correlations_all.png", plot, width = 11, height = 8, dpi = 300, bg = 'white')
+
+```
+
+
+```{r}
+library(R.matlab)
+
+# CCA variates
+BW_item_variate <- readMat("~/Git/body_wandering/figures/CCA/Abend216/BWitems/CCAvariate.mat")$P
+colnames(BW_item_variate) <- c('CCA.brain.variate', 'CCA.beh.variate')
+BWCCAs_subIDs <- readMat("~/Git/body_wandering/data/CCA_input/subIDs_BWCCAs.mat")$subIDs
+
+
+# Psych & Physio together (to correct multiple comparisons)
+alldata <- read_csv("~/Git/body_wandering/data/BodyWanderingData.csv")
+cols = c("participant_id", "asrs.combined.sum", "mdi", "Heart Rate", "HRV RMSSD", "High Freq Power", "LF/HF Ratio", "Resp Rate", "Resp Duration Mean", "Resp Duration SD", "Resp Depth Mean", "Resp Depth SD", "Gastric Peak Freq", "Gastric Max Power", "Gastric Prop Power")
+col2log <- c("mdi", "HRV RMSSD", "LF/HF Ratio", "Resp Duration SD", "Resp Depth SD", "Gastric Max Power")
+for (col in col2log) {
+  corrdata[ ,col] <- log(corrdata[ ,col] + 1)
+}
+corrdata[,3:ncol(corrdata)] <- corrdata[,3:ncol(corrdata)] %>% mutate_if(is.numeric, ~ifelse(abs(. - mean(., na.rm = TRUE)) > 3 * sd(., na.rm = TRUE), NA, .)) # remove outliers
+alldata <- alldata[complete.cases(alldata[, c("Future")]), ][ ,cols] #NAs in Future is same as all mind-wandering item
+
+# match and merge the relevant variables of interest
+match_merge <- function(data1, data2, subIDs1, subIDs2, labels) {
+  reorder_idx <- match(subIDs1, subIDs2)
+  data2 <- data2[reorder_idx, ]
+
+  # merge data across dataframes
+  merged <- cbind(data1, data2)
+  colnames(merged) <- labels
+  return(merged)
+}
+
+CCAvar_corr <- match_merge(BW_item_variate, alldata[ 2:ncol(alldata)], BWCCAs_subIDs, as.numeric(sub("sub-", "", alldata$participant_id)), c(colnames(BW_item_variate), colnames(alldata[ 2:ncol(alldata)])))
+
+
+
+# make bar also
+library(tidyr)
+library(dplyr)
+
+# Correlation plots
+cormatrix <- t(psych::corr.test(CCAvar_corr, method = "spearman", adjust = "fdr")$r[1:2, 3:16])#[2:3, 6:19]
+cor_pvals <- t(psych::corr.test(CCAvar_corr, method = "spearman", adjust = "fdr")$p[1:2, 3:16])
+cor_pvals[cor_pvals > 0.05] <- NA 
+
+cormatrix <- as.data.frame(cormatrix)
+cormatrix$Vars <- rownames(cormatrix)
+
+# Convert to long format
+cormatrix<- cormatrix %>%
+  pivot_longer(cols = -Vars, names_to = "Correlation", values_to = "Value") %>%
+  mutate(Vars = factor(Vars, levels = unique(Vars))) # Ensure the order is as desired
+
+
+# Step 1: Create a sorting frame based on positive correlations
+sort_order <- cormatrix %>%
+  dplyr::filter(Correlation == "CCA.beh.variate") %>%
+  dplyr::arrange(desc(Value)) %>%
+  dplyr::mutate(order = row_number()) %>%
+  dplyr::select(Vars, order) # Adjusted to ensure select is correctly applied
+
+# Step 2: Merge this order back into the original dataset
+cormatrix <- cormatrix %>%
+  left_join(sort_order, by = "Vars") %>%
+  mutate(Vars = factor(Vars, levels = sort_order$Vars)) # Reorder based on positive correlation
+
+# Step 3: Plot the data
+plot <- ggplot(cormatrix, aes(x = Vars, y = Value, fill = Correlation)) +
+  geom_col(position = position_dodge2(padding = 0.2), width = 1) +
+  coord_flip() +
+  theme_minimal() +
+  scale_fill_manual(values = c("CCA.beh.variate"= "mediumslateblue", "CCA.brain.variate" = "hotpink")) +
+  labs(y = "Spearman Coefficient", title = "Mind-Wandering Correlations") +
+  theme(
+    axis.title.y = element_text(size = 16),
+    axis.title.x = element_text(size = 16),
+    axis.text.y = element_text(size = 16, margin = margin(t = 0, r = 0, b = 0, l = 10, unit = "pt")),
+    axis.text.x = element_text(size = 16, margin = margin(t = 0, r = 0, b = 10, l = 0, unit = "pt")),
+    legend.text = element_text(size = 16),
+    legend.title = element_text(size = 15),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_blank(),
+    axis.line = element_line(colour = "black")
+  )
+
+print(plot)
+
+# Save the plot with specified dimensions
+ggsave("~/Git/BodyWanderingCCA/figures/Indiv_Figures/ControlAnalyses/MWaverage_corr/CCAvariate_correlations_all.png", plot, width = 11, height = 8, dpi = 300, bg = 'white')
+
+
+```
+
+

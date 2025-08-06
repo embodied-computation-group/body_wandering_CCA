@@ -1,7 +1,8 @@
 savepath = '/home/leah/Git/BodyWanderingCCA/figures/wordclouds/';
-bw_data = readtable('/home/leah/Git/BodyWanderingCCA/data/BodyWanderingData.csv'); 
+bw_data = readtable('/home/leah/Git/BodyWanderingCCA/data/data4correlations/BodyWanderingData.csv'); 
 beh_labels = {'Future','Past','Self','Other','Pos','Neg','Words','Vivid','Vague','Spontaneous','Focus','Ruminate','Distant','Image','Arousal','Body','Breath','Heart','Movement','Bladder','Skin','Stomach'};
 MDIES  = bw_data{:, beh_labels}; %
+beh_labels = {'Future','Past','Self','Other','Pos','Neg','Words','Vivid','Vague','Spontaneous','Focus','Repetitive','Distant','Image','Arousal','Body','Breath','Heart','Movement','Bladder','Skin','Stomach'};
 BW_av = bw_data{:, 'Body_Wandering'};  
 Cog_av = bw_data{:, 'Cog_Wandering'};
 Neg_diff = bw_data{:, 'Neg_Wandering'};    
@@ -27,7 +28,7 @@ custom_colormap = flipud([linspace(color1_rgb(1), color2_rgb(1), num_colors)', .
 cl = colormap(custom_colormap);
 
 wordcloud(beh_labels', abs(BW_cor), 'Color', cl);
-saveas(gcf, [savepath, 'Bodyaverage_itemCorr_WordCloud.png']);
+saveas(gcf, [savepath, 'Bodyaverage_itemCorr_WordCloud_test.png']);
 
 %% Cog-Wandering - MDIES items correlation word cloud %%%%%%%%%%%%%%%%%%%
 % MAKE a custom colormap 

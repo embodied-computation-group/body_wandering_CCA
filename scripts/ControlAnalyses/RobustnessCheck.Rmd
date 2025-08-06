@@ -1,0 +1,384 @@
+---
+title: "Robustness check of Body-Wandering results"
+output: html_notebook
+---
+
+# Item Ratings Robustness
+```{r}
+# clean slate to be sure
+rm(list = ls())
+
+# check for pacman package and install if not found
+if (!require("pacman")) install.packages("pacman")
+  pacman::p_load(readr,psych,polycor,corrplot,dplyr, tidyverse, here, circlize, BiocManager, ComplexHeatmap, gplots, gridExtra, gt, kableExtra, ggcorrplot, shape, patchwork, tidyr)
+
+rest_probes <- read_csv('~/Git/BodyWanderingCCA/data/rest_probes.csv')
+# # Split into odd and even indexed rows to check robustness
+# rest_probes_odd  <- rest_probes[seq(1, nrow(rest_probes), by = 2), ]  # Odd-indexed rows
+# rest_probes_even <- rest_probes[seq(2, nrow(rest_probes), by = 2), ]  # Even-indexed rows
+
+# Make rating boxplot separately for odd & even participants
+rest_probes_reorder <- dplyr::select(data.frame(rest_probes), Stomach, Skin, Bladder, Movement, Heart, Breath, Body, Arousal, Image, Distant, Ruminate, Focus, Spontaneous, Vague, Vivid, Words, Neg, Pos, Other, Self, Past, Future)
+
+data_tmp_rest <- rest_probes_reorder #as.data.frame(rest_probes_reorder)
+data_tmp_rest$id <- read_tsv('~/Git/BodyWanderingCCA/data/mindwand_movieratings.tsv')$participant_id # dataprobe_data$participant_id
+nan_ids_rest  = which(is.na(data_tmp_rest[,1]))
+data_tmp_rest<-data_tmp_rest[-nan_ids_rest,]
+
+# Split dataset into odd and even participant IDs
+row_indices <- seq_len(nrow(data_tmp_rest))
+datasets <- list(
+  "odd"  = data_tmp_rest[row_indices %% 2 == 1, ],
+  "even" = data_tmp_rest[row_indices %% 2 == 0, ]
+)
+
+plot_colors <- rep(c("#ff70a6", "#70d6ff"), times = c(8, 14))
+plots <- list()
+# Loop over odd/even datasets to save CSVs and generate plots
+for (key in names(datasets)) {
+  # Transform data for plotting
+  plot_data <- datasets[[key]] %>%
+    pivot_longer(cols = Stomach:Future, names_to = "Item", values_to = "Rating")
+  # Reorder factor levels for plotting
+  plot_data$Item <- factor(plot_data$Item, levels = colnames(rest_probes_reorder))
+
+  # Define plot filename
+  filename_png <- paste0("~/Git/BodyWanderingCCA/figures/Indiv_Figures/ControlAnalyses/Robustness/boxplot_rest_", key, ".png")
+  # Generate and save the plot
+  plots[[key]] <- ggplot(plot_data, aes(x = reorder(Item, Rating), y = Rating)) + 
+    geom_boxplot(notch = TRUE, outlier.shape = NA, aes(fill = Item), show.legend = FALSE) + 
+    theme_classic() +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
+    scale_fill_manual(values = plot_colors) +
+    theme(text = element_text(size = 15)) +
+    labs(x = "MDIES Item", y = "Rating", title = key) +
+    coord_flip()  # Horizontal box plot
+}
+# Arrange plots side by side
+combined_plot <- plots$odd + plots$even + plot_layout(ncol = 2)
+# Save the combined plot
+ggsave("~/Git/BodyWanderingCCA/figures/Indiv_Figures/ControlAnalyses/Robustness/boxplot_rest_OddEven.png",combined_plot, width = 20, height = 12, units = "cm", dpi = 150)
+
+
+# assess similarity via interclass correlation (ICC)
+library(irr)
+# Compute median ratings for each item
+odd_medians  <- apply(datasets$odd[, -ncol(datasets$odd)], 2, median, na.rm = TRUE)
+even_medians <- apply(datasets$even[, -ncol(datasets$even)], 2, median, na.rm = TRUE)
+# Create a data matrix for ICC calculation
+icc_matrix <- cbind(odd_medians, even_medians)
+# Compute ICC (Two-way model, Agreement type)
+icc_result <- icc(icc_matrix, model = "twoway", type = "agreement", unit = "single")
+# Print ICC results
+print(paste("Intraclass Correlation Coefficient (ICC) using median item ratings:", icc_result$value))
+
+```
+
+
+# Corr plots (body-related factors & emotion) Robustness
+```{r}
+
+Affect_Body <- data.frame(rest_probes) %>% dplyr::select(Pos, Neg, Arousal, Body, Breath, Heart, Movement, Bladder, Skin, Stomach) %>%
+  na.omit()
+# Split dataset based on odd/even rows
+row_indices <- seq_len(nrow(Affect_Body))
+datasets <- list(
+  "odd"  = Affect_Body[row_indices %% 2 == 1, ],  # Exclude ID column
+  "even" = Affect_Body[row_indices %% 2 == 0, ]
+)
+
+corr_results <- list()
+pval_results <- list()
+# Loop through "odd" and "even" groups to compute Spearman correlations
+for (key in names(datasets)) {
+  # Compute Spearman correlation
+  corr_matrix <- psych::corr.test(datasets[[key]], method = "spearman", adjust = "fdr")$r[1:2, 3:10]
+  p_matrix <- psych::corr.test(datasets[[key]], method = "spearman", adjust = "fdr")$p[1:2, 3:10]    # Extract corresponding p-values
+  # Convert to dataframe and store r vals
+  corr_results[[key]] <- as.data.frame(t(corr_matrix))
+  corr_results[[key]]$Items <- rownames(corr_results[[key]])
+  # Convert to dataframe and store p-values
+  pval_results[[key]] <- as.data.frame(t(p_matrix))
+  pval_results[[key]]$Items <- rownames(pval_results[[key]])
+}
+# Combine results into a single dataframe
+corr_combined <- left_join(
+  pivot_longer(corr_results$odd, cols = -Items, names_to = "Correlation", values_to = "Odd"),
+  pivot_longer(corr_results$even, cols = -Items, names_to = "Correlation", values_to = "Even"),
+  by = c("Items", "Correlation")
+)
+# Convert for plotting
+corr_combined_long <- pivot_longer(corr_combined, cols = c(Odd, Even), 
+                                   names_to = "Group", values_to = "Value")
+# Create sorting order based on positive correlations in the **odd group**
+pos_sort_order <- corr_results$even %>%
+  pivot_longer(cols = -Items, names_to = "Correlation", values_to = "Value") %>%
+  dplyr::filter(Correlation == "Pos") %>%
+  dplyr::arrange(desc(Value)) %>%
+  dplyr::mutate(order = row_number()) %>%
+  dplyr::select(Items, order)
+
+# Merge sorting order into combined dataset
+corr_combined_long <- corr_combined_long %>%
+  left_join(pos_sort_order, by = "Items") %>%
+  mutate(Items = factor(Items, levels = pos_sort_order$Items))  # Reorder based on Odd correlations
+
+# Create side-by-side bar plot
+plot <- ggplot(corr_combined_long, aes(x = Items, y = Value, fill = Correlation)) +
+  geom_col(position = position_dodge2(padding = 0.2), width = 1) +
+  coord_flip() +
+  facet_wrap(~Group, ncol = 2) +  # Side-by-side plots for Odd vs Even
+  theme_minimal() +
+  scale_fill_manual(values = c("Neg" = "lightslateblue", "Pos" = "#ffd670")) +
+  labs(y = "Correlation Coefficient", title = "Affect-Body Correlations (Odd vs Even Participants)") +
+  theme(
+    axis.title.y = element_text(size = 16),
+    axis.title.x = element_text(size = 16),
+    axis.text.y = element_text(size = 16, margin = margin(t = 0, r = 0, b = 0, l = 10, unit = "pt")),
+    axis.text.x = element_text(size = 16, margin = margin(t = 0, r = 0, b = 10, l = 0, unit = "pt")),
+    legend.text = element_text(size = 16),
+    legend.title = element_text(size = 15),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_blank(),
+    axis.line = element_line(colour = "black")
+  )
+
+# Print and Save the plot
+print(plot)
+ggsave("~/Git/BodyWanderingCCA/figures/Indiv_Figures/ControlAnalyses/Robustness/AffectBody_correlations_OddEven.png", plot, width = 12, height = 8, dpi = 300, bg = 'white')
+
+
+
+# Identify significant correlations in orig full dataset
+cor_pvals <- t(psych::corr.test(Affect_Body, method = "spearman", adjust = "fdr")$p[1:2, 3:10])
+sig_mask <- cor_pvals < 0.05
+
+# sig_mask_odd <- pval_results$odd[, -ncol(pval_results$odd)] < 0.05
+# sig_mask_even <- pval_results$even[, -ncol(pval_results$even)] < 0.05
+# sig_mask <- sig_mask_odd & sig_mask_even # sig_mask_odd | sig_mask_even
+
+# Filter correlations based on significance mask
+icc_matrix <- cbind(
+  corr_results$odd[, -ncol(corr_results$odd)][sig_mask],
+  corr_results$even[, -ncol(corr_results$even)][sig_mask]
+)
+
+# Compute ICC (Two-way model, Agreement type)
+icc_result <- icc(icc_matrix, model = "twoway", type = "agreement", unit = "single")
+
+# Print ICC result
+print(paste("Intraclass Correlation Coefficient (ICC) using significant affect-body correlations:", 
+            round(icc_result$value, 3)))
+
+
+
+######### Cog/Descriptive items with Affect correlations ########
+ 
+Affect_Cog <- data.frame(rest_probes) %>% dplyr::select(Pos, Neg, Past, Future, Self, Other, Image, Distant, Focus, Vague, Ruminate, Vivid, Words, Spontaneous ) %>%
+  na.omit() 
+# Split dataset based on odd/even rows
+row_indices <- seq_len(nrow(Affect_Cog))
+datasets <- list(
+  "odd"  = Affect_Cog[row_indices %% 2 == 1, ],  # Exclude ID column
+  "even" = Affect_Cog[row_indices %% 2 == 0, ]
+)
+corr_results <- list()
+pval_results <- list()
+# Loop through "odd" and "even" groups to compute Spearman correlations
+for (key in names(datasets)) {
+  # Compute Spearman correlation
+  corr_matrix <- psych::corr.test(datasets[[key]], method = "spearman", adjust = "fdr")$r[1:2, 3:ncol(Affect_Cog)]
+  p_matrix <- psych::corr.test(datasets[[key]], method = "spearman", adjust = "fdr")$p[1:2, 3:ncol(Affect_Cog)]    # Extract corresponding p-values
+  # Convert to dataframe and store r vals
+  corr_results[[key]] <- as.data.frame(t(corr_matrix))
+  corr_results[[key]]$Items <- rownames(corr_results[[key]])
+  # Convert to dataframe and store p-values
+  pval_results[[key]] <- as.data.frame(t(p_matrix))
+  pval_results[[key]]$Items <- rownames(pval_results[[key]])
+}
+
+# Identify significant correlations in orig full dataset
+cor_pvals <- t(psych::corr.test(Affect_Cog, method = "spearman", adjust = "fdr")$p[1:2, 3:ncol(Affect_Cog)])
+sig_mask <- cor_pvals < 0.05
+
+# Filter correlations based on significance mask
+icc_matrix <- cbind(
+  corr_results$odd[, -ncol(corr_results$odd)][sig_mask],
+  corr_results$even[, -ncol(corr_results$even)][sig_mask]
+)
+
+# Compute ICC (Two-way model, Agreement type)
+icc_result <- icc(icc_matrix, model = "twoway", type = "agreement", unit = "single")
+
+# Print ICC result
+print(paste("Intraclass Correlation Coefficient (ICC) using significant affect-cog correlations:", 
+            round(icc_result$value, 3)))
+
+```
+
+
+# Psychophysiological Correlations Robustness
+```{r}
+
+# Psych & Physio together
+alldata <- read_csv("~/Git/body_wandering/data/BodyWanderingData.csv")
+BodyAv <- rowMeans(alldata[complete.cases(alldata[, c("Future")]) ,c("Body", "Breath", "Heart", "Movement", "Bladder", "Skin", "Stomach")])  
+CognitiveAv <- rowMeans(alldata[complete.cases(alldata[, c("Future")]) ,c("Future", "Past", "Self", "Other")]) 
+cols = c("asrs.combined.sum", "mdi", "Heart Rate", "HRV RMSSD", "High Freq Power", "LF/HF Ratio", "Resp Rate", "Resp Duration Mean", "Resp Duration SD", "Resp Depth Mean", "Resp Depth SD", "Gastric Peak Freq", "Gastric Max Power", "Gastric Prop Power")
+alldata <- alldata[complete.cases(alldata[, c("Future")]), ][ ,cols] #NAs in Future is same as all mind-wandering item
+corrdata <- cbind(BodyAv, CognitiveAv, alldata) 
+col2log <- c("mdi", "HRV RMSSD", "LF/HF Ratio", "Resp Duration SD", "Resp Depth SD", "Gastric Max Power")
+for (col in col2log) {
+  corrdata[ ,col] <- log(corrdata[ ,col] + 1)
+}
+corrdata[,3:ncol(corrdata)] <- corrdata[,3:ncol(corrdata)] %>% mutate_if(is.numeric, ~ifelse(abs(. - mean(., na.rm = TRUE)) > 3 * sd(., na.rm = TRUE), NA, .)) # remove outliers
+colnames(corrdata) <- c("Body-Wandering", "Cog-Wandering", "ADHD", "Depression", "Heart Rate", "HRV RMSSD", "High Freq Power", "LF/HF Ratio", "Resp Rate", "Resp Duration Mean", "Resp Duration SD", "Resp Depth Mean", "Resp Depth SD", "Gastric Peak Freq", "Gastric Max Power", "Gastric Prop Power") 
+
+# Split dataset into Odd and Even participants
+row_indices <- seq_len(nrow(corrdata))
+datasets <- list(
+  "Odd"  = corrdata[row_indices %% 2 == 1, ],  # Exclude ID column
+  "Even" = corrdata[row_indices %% 2 == 0, ]
+)
+
+# Compute Spearman correlation for each group
+corr_results <- list()
+pval_results <- list()
+for (key in names(datasets)) {
+  corr_matrix <- psych::corr.test(datasets[[key]], method = "spearman", adjust = "fdr")$r[1:2, 3:16]
+  p_matrix <- psych::corr.test(datasets[[key]], method = "spearman", adjust = "fdr")$p[1:2, 3:16]
+  corr_results[[key]] <- as.data.frame(t(corr_matrix))
+  corr_results[[key]]$Vars <- rownames(corr_results[[key]])
+  # Convert to dataframe and store p-values
+  pval_results[[key]] <- as.data.frame(t(p_matrix))
+  pval_results[[key]]$Items <- rownames(pval_results[[key]])
+}
+
+# Combine results into a single dataframe
+corr_combined <- left_join(
+  pivot_longer(corr_results$Odd, cols = -Vars, names_to = "Correlation", values_to = "Odd"),
+  pivot_longer(corr_results$Even, cols = -Vars, names_to = "Correlation", values_to = "Even"),
+  by = c("Vars", "Correlation")
+)
+
+# Convert to long format for plotting
+corr_combined_long <- pivot_longer(corr_combined, cols = c(Odd, Even), 
+                                   names_to = "Group", values_to = "Value")
+                                   
+# Step 1: Create sorting order based on positive correlations in the Odd group
+sort_order <- corr_results$Even %>%
+  pivot_longer(cols = -Vars, names_to = "Correlation", values_to = "Value") %>%
+  dplyr::filter(Correlation == "Body-Wandering") %>%
+  dplyr::arrange(desc(Value)) %>%
+  dplyr::mutate(order = row_number()) %>%
+  dplyr::select(Vars, order)
+
+# Step 2: Merge sorting order into combined dataset
+corr_combined_long <- corr_combined_long %>%
+  left_join(sort_order, by = "Vars") %>%
+  mutate(Vars = factor(Vars, levels = sort_order$Vars))  # Reorder based on Odd correlations
+
+# Create side-by-side correlation plots
+plot <- ggplot(corr_combined_long, aes(x = Vars, y = Value, fill = Correlation)) +
+  geom_col(position = position_dodge2(padding = 0.2), width = 1) +
+  coord_flip() +
+  facet_wrap(~Group, ncol = 2) +  # Side-by-side plots for Odd vs Even
+  theme_minimal() +
+  scale_fill_manual(values = c("Body-Wandering" = "#ff70a6", "Cog-Wandering" = "#70d6ff")) +
+  labs(y = "Spearman Coefficient", title = "Mind-Wandering Correlations (Odd vs Even Participants)") +
+  theme(
+    axis.title.y = element_text(size = 16),
+    axis.title.x = element_text(size = 16),
+    axis.text.y = element_text(size = 16, margin = margin(t = 0, r = 0, b = 0, l = 10, unit = "pt")),
+    axis.text.x = element_text(size = 16, margin = margin(t = 0, r = 0, b = 10, l = 0, unit = "pt")),
+    legend.text = element_text(size = 16),
+    legend.title = element_text(size = 15),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_blank(),
+    axis.line = element_line(colour = "black")
+  )
+
+# Print and Save the plot
+print(plot)
+ggsave("~/Git/BodyWanderingCCA/figures/Indiv_Figures/ControlAnalyses/Robustness/MindWandering_correlations_OddEven.png", plot, width = 14, height = 8, dpi = 300, bg = 'white')
+
+
+
+# Interclass Correlation
+
+# Identify significant correlations in orig full dataset
+cor_pvals <- t(psych::corr.test(corrdata, method = "spearman", adjust = "fdr")$p[1:2, 3:ncol(corrdata)])
+sig_mask <- cor_pvals < 0.05
+
+# Filter correlations based on significance mask
+icc_matrix <- cbind(
+  corr_results$Odd[, -ncol(corr_results$Odd)][sig_mask],
+  corr_results$Even[, -ncol(corr_results$Even)][sig_mask]
+)
+
+# Compute ICC (Two-way model, Agreement type)
+icc_result <- icc(icc_matrix, model = "twoway", type = "agreement", unit = "single")
+
+# Print ICC result
+print(paste("Intraclass Correlation Coefficient (ICC) using significant psychophysio correlations:", 
+            round(icc_result$value, 3)))
+
+
+
+######### Neg-wandering diff score with psychophysiology correlations ########
+# Psych & Physio together
+alldata <- read_csv("~/Git/body_wandering/data/BodyWanderingData.csv")
+AffectDiff <- as.numeric(unlist((alldata[complete.cases(alldata[, c("Future")]),c("Neg")] - alldata[complete.cases(alldata[, c("Future")]),c("Pos")])))  # positive diff score = more neg thoughts (negative diff score = more pos thoughts) 
+cols = c("asrs.combined.sum", "mdi", "Heart Rate", "HRV RMSSD", "High Freq Power", "LF/HF Ratio", "Resp Rate", "Resp Duration Mean", "Resp Duration SD", "Resp Depth Mean", "Resp Depth SD", "Gastric Peak Freq", "Gastric Max Power", "Gastric Prop Power")
+alldata <- alldata[complete.cases(alldata[, c("Future")]), ][ ,cols] #NAs in Future is same as all mind-wandering item
+corrdata <- cbind(AffectDiff, alldata) 
+col2log <- c("mdi", "HRV RMSSD", "LF/HF Ratio", "Resp Duration SD", "Resp Depth SD", "Gastric Max Power")
+for (col in col2log) {
+  corrdata[ ,col] <- log(corrdata[ ,col] + 1)
+}
+corrdata[,3:ncol(corrdata)] <- corrdata[,3:ncol(corrdata)] %>% mutate_if(is.numeric, ~ifelse(abs(. - mean(., na.rm = TRUE)) > 3 * sd(., na.rm = TRUE), NA, .)) # remove outliers
+colnames(corrdata) <- c("Neg-Wandering", "ADHD", "Depression", "Heart Rate", "HRV RMSSD", "High Freq Power", "LF/HF Ratio", "Resp Rate", "Resp Duration Mean", "Resp Duration SD", "Resp Depth Mean", "Resp Depth SD", "Gastric Peak Freq", "Gastric Max Power", "Gastric Prop Power") 
+
+# Split dataset into Odd and Even participants
+row_indices <- seq_len(nrow(corrdata))
+datasets <- list(
+  "Odd"  = corrdata[row_indices %% 2 == 1, ],  # Exclude ID column
+  "Even" = corrdata[row_indices %% 2 == 0, ]
+)
+
+# Compute Spearman correlation for each group
+corr_results <- list()
+pval_results <- list()
+for (key in names(datasets)) {
+  corr_matrix <- psych::corr.test(datasets[[key]], method = "spearman", adjust = "fdr")$r[1, 2:ncol(corrdata)]
+  p_matrix <- psych::corr.test(datasets[[key]], method = "spearman", adjust = "fdr")$p[1, 2:ncol(corrdata)]
+  corr_results[[key]] <- as.data.frame(t(corr_matrix))
+  corr_results[[key]]$Vars <- rownames(corr_results[[key]])
+  # Convert to dataframe and store p-values
+  pval_results[[key]] <- as.data.frame(t(p_matrix))
+  pval_results[[key]]$Items <- rownames(pval_results[[key]])
+}
+
+# Identify significant correlations in orig full dataset
+cor_pvals <- t(psych::corr.test(corrdata, method = "spearman", adjust = "fdr")$p[1, 2:ncol(corrdata)])
+sig_mask <- cor_pvals < 0.05
+
+# Filter correlations based on significance mask
+icc_matrix <- cbind(
+  corr_results$Odd[, -ncol(corr_results$Odd)][sig_mask],
+  corr_results$Even[, -ncol(corr_results$Even)][sig_mask]
+)
+
+# Compute ICC (Two-way model, Agreement type)
+icc_result <- icc(icc_matrix, model = "twoway", type = "agreement", unit = "single")
+
+# Print ICC result
+print(paste("Intraclass Correlation Coefficient (ICC) using significant Neg-wandering & PsychoPhysio correlations:", 
+            round(icc_result$value, 3)))
+
+
+```
+
+

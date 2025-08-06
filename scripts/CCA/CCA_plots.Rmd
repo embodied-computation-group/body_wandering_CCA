@@ -382,6 +382,11 @@ for (pattern in names(replacement_rules)) {
   my_adj_list$reg_B <- gsub(paste0("\\b", pattern, "\\b"), replacement_rules[pattern], my_adj_list$reg_B, ignore.case = TRUE)
 }
 
+atlas_labels$shortER_labels <- atlas_labels$short_labels
+atlas_labels$shortER_labels <- Reduce(function(x, pattern) {
+  gsub(paste0("\\b", pattern, "\\b"), replacement_rules[pattern], x, ignore.case = TRUE)
+}, names(replacement_rules), init = atlas_labels$short_labels)
+
 ```
 
 
@@ -391,15 +396,23 @@ for (pattern in names(replacement_rules)) {
 # ChordDiagram with extra network labels outer layer 
 
 
+# try make inner circle of intero - orig yeo7 network colour
+reg_color2 <- reg_color
+regions2change <- names(reg_color[modul == 'Intero'])
+unique_regionlabels <- make.names(region_labels, unique=TRUE)
+orig_networks <- yeo7_orig[which(unique_regionlabels %in% regions2change)]
+
+reg_color2[which(modul == "Intero")] <- modul_color[orig_networks]
+
+
  # SAVE           
 png(sprintf("%schordplot_CCAloadings_%.3fthresh_%.2fpercentile__ShorterLabels.png", savepath, round(threshold, 3), round(threshold_percentile, 3)), res = 150, height = 19, width = 19, units = "cm")
 
 circos.par(gap.after = gap.after, cell.padding = c(0, 0, 0, 0), canvas.ylim=c(-1.5,1.5), start.degree = 130, track.margin = c(0.01, 0.02)) 
-
-par(cex = 0.675) 
+par(cex = 0.675)   
 
 # plot chordDiagram - with positive & negative links
-chordDiagram(my_adj_list, annotationTrack = "grid", grid.col = reg_color, order = names(modul), directional = 1, preAllocateTracks =  list(list(track.height = 0.08)), col=cols[(sign(my_adj_list$weight)+3)/2])
+chordDiagram(my_adj_list, annotationTrack = "grid", grid.col = reg_color2, order = names(modul), directional = 1, preAllocateTracks =  list(list(track.height = 0.08)), col=cols[(sign(my_adj_list$weight)+3)/2])
 
 
 for (network in unique(modul)) {
@@ -440,12 +453,13 @@ circos.clear
 #source('~/Git/body_wandering/rcode/CCA_Chordplot/chordplot_Abend216.R')
 
 # variables for function
-cca_filename <- "/home/leah/Git/body_wandering/figures/CCA/Abend216/BWitems/brainweights.mat" #"/home/leah/Git/BodyWanderingCCA/figures/Indiv_Figures/ControlAnalyses/phq15nuissance/CCA/brainloadings.mat" #
+cca_filename <- "/home/leah/Git/body_wandering/figures/CCA/Abend216/BWitems/brainloadings.mat" #"/home/leah/Git/BodyWanderingCCA/figures/Indiv_Figures/ControlAnalyses/phq15nuissance/CCA/brainloadings.mat" #
 threshold_percentile <- 0.99
 chord2plot <- 1
-savepath = "~/Git/body_wandering/figures/CCA/Abend216/BWitems/"  #"/home/leah/Git/BodyWanderingCCA/figures/Indiv_Figures/ControlAnalyses/phq15nuissance/CCA/" # 
-region_labels = atlas_labels$short_labels #merged_labels
+savepath = "/home/leah/Git/BodyWanderingCCA/figures/Indiv_Figures/"   # 
+region_labels = atlas_labels$shortER_labels #merged_labels
 network_labels = yeo7
+network_labels2 = yeo7_orig
 
 # run chordplot function
 chordplot_result <- chordplot(cca_filename, threshold_percentile, chord2plot, savepath, region_labels, network_labels)

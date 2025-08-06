@@ -1,0 +1,71 @@
+Thalamus R - Subcortical: 53
+Postcentral Gyrus R - SomMot: 24
+Thalamus L - Subcortical: 22
+Caudate R - Subcortical: 22
+Putamen L - Subcortical: 21
+Postcentral Gyrus L - SomMot: 18
+Postcentral Gyrus R - SomMot: 17
+Putamen R - Subcortical: 16
+Postcentral Gyrus L - SomMot: 15
+Cingulate Gyrus Post R - Cont: 14
+Paracingulate Gyrus R - Cont: 13
+Postcentral Gyrus R - SomMot: 13
+Precentral Gyrus L - SomMot: 12
+Postcentral Gyrus R - SomMot: 12
+Precentral Gyrus L - SomMot: 12
+Cingulate Gyrus Ant L - Default: 11
+Precentral Gyrus R - SomMot: 11
+Precentral Gyrus R - SomMot: 11
+Caudate L - Subcortical: 10
+Superior Frontal Gyrus R - Cont: 9
+Precentral Gyrus L - SomMot: 8
+Precentral Gyrus L - SomMot: 8
+Precentral Gyrus R - SomMot: 7
+Postcentral Gyrus R - SomMot: 7
+Cingulate Gyrus Post L - Cont: 7
+Postcentral Gyrus L - SomMot: 6
+Superior Parietal Lobule R - SomMot: 5
+Parietal Operculum Cortex R - SomMot: 5
+Postcentral Gyrus R - SomMot: 4
+Central Opercular Cortex L - SomMot: 4
+Insular Cortex R - SomMot: 4
+Insular Cortex L - SomMot: 4
+Juxtapositional Lobule Cortex  R - SomMot: 4
+Juxtapositional Lobule Cortex  L - SomMot: 4
+Middle Frontal Gyrus R - Cont: 4
+Precentral Gyrus L - SomMot: 3
+Middle Frontal Gyrus R - Cont: 3
+Frontal Pole R - Cont: 3
+Frontal Pole R - Cont: 2
+Planum Temporale R - SomMot: 2
+Superior Temporal Gyrus Ant R - Default: 2
+Supramarginal Gyrus Post L - Default: 2
+Postcentral Gyrus L - DorsAttn: 2
+Postcentral Gyrus L - DorsAttn: 2
+Supramarginal Gyrus Post R - Cont: 2
+Lateral Occipital Cortex Inf L - Vis: 1
+Lingual Gyrus L - Vis: 1
+Superior Parietal Lobule L - SomMot: 1
+Central Opercular Cortex L - SomMot: 1
+Planum Temporale L - SomMot: 1
+Cuneal Cortex L - Vis: 1
+Superior Frontal Gyrus L - SomMot: 1
+Central Opercular Cortex R - SomMot: 1
+Temporal Occipital Fusiform Cortex L - DorsAttn: 1
+Superior Parietal Lobule L - DorsAttn: 1
+Superior Temporal Gyrus Post R - Default: 1
+Supramarginal Gyrus Post R - SalVentAttn: 1
+Superior Parietal Lobule R - DorsAttn: 1
+Lateral Occipital Cortex Sup R - DorsAttn: 1
+Postcentral Gyrus R - DorsAttn: 1
+Postcentral Gyrus R - DorsAttn: 1
+Middle Temporal Gyrus TempOcci R - DorsAttn: 1
+Inferior Temporal Gyrus TempOcci R - DorsAttn: 1
+Superior Frontal Gyrus R - SomMot: 1
+Precentral Gyrus R - SomMot: 1
+Lateral Occipital Cortex Inf R - Vis: 1
+Lingual Gyrus R - Vis: 1
+Temporal Fusiform Cortex Post R - Vis: 1
+Superior Temporal Gyrus Ant L - Default: 1
+Planum Temporale L - SalVentAttn: 1
+Lateral Occipital Cortex Inf L - Vis: 1

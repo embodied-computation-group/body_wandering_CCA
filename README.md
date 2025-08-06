@@ -83,6 +83,13 @@ Note: data & scripts for raw/preprocessed fMRI, raw physio, and raw survey indiv
 
 --------------------------------------------------------------------------------------------------------
 
+**6. Gradient Association of CCA Result**:
+
+  6. Additional analyses and control analyses:
+  ~/Git/BodyWanderingCCA/scripts/ControlAnalyses
+  
+--------------------------------------------------------------------------------------------------------
+
 ### Extra scripts for plots and JASP statistics:
 
 Wordclouds of Mind-Wandering Summary Scores:

@@ -27,6 +27,7 @@ hist(rest_probes)
 MW_rest_key <- read_csv(here::here("data", "probe_key.csv"))
 colnames(rest_probes) = MW_rest_key$Label
 
+#write.csv(rest_probes, "~/Git/BodyWanderingCCA/data/rest_probes.csv")
 ```
 
 # Item Ratings
@@ -61,6 +62,19 @@ png(filename = here::here("figures", "boxplot_rest_reordered.png"), res = 150, h
   
 dev.off()
 
+
+```
+
+# Bladder item descriptive stats
+```{r}
+
+print(median(rest_probes[, 'Bladder'], na.rm = TRUE))
+print(range(rest_probes[, 'Bladder'], na.rm = TRUE))
+print(sum(rest_probes[, 'Bladder'] < 10, na.rm = TRUE))
+hist(rest_probes[, 'Bladder'])
+
+sum(na.omit(rest_probes[, 'Bladder'] < 30)) / length(na.omit(rest_probes[ ,'Bladder']))
+sum(na.omit(rest_probes[ ,'Bladder'] > 70)) / length(na.omit(rest_probes[ ,'Bladder']))
 
 ```
 

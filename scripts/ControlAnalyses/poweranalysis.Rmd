@@ -5,7 +5,38 @@ date: "2025-02-17"
 ---
 
 ```{r setup, include=FALSE}
+# posthoc power analysis based on cca
 
-testing 1 2 3
+# clean slate to be sure
+rm(list = ls())
+
+# check for pacman package and install if not found
+if (!require("pacman")) install.packages("pacman")
+  pacman::p_load(pwr)
+
+# cca r correlation coefficient
+Rcca <- 0.354  
+
+# Compute effect size f^2
+f2 <- (Rcca^2) / (1 - Rcca^2)
+
+# Number of variables in each set from PCA
+num_x <- 2   # Brain connectivity side (after PCA on reported data-fold)
+num_y <- 15  # Mind-wandering items side (after PCA on reported data-fold)
+
+# Desired power and significance level
+power_target <- 0.8  
+sig_level <- 0.05  
+
+# Compute required sample size including both X and Y
+required_sample <- pwr.f2.test(u = (num_x + num_y), v = NULL, f2 = f2, 
+                               sig.level = sig_level, power = power_target)
+
+# Compute total required sample size
+required_sample_size <- (num_x + num_y) + required_sample$v + 1  # num vars + df + 1
+
+# Print required sample size results
+print(required_sample)
+cat("Required sample size for 80% power (including X and Y in CCA):", ceiling(required_sample_size), "\n")
 
 ```
