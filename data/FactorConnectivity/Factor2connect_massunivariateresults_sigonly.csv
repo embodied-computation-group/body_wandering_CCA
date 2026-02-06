@@ -1,0 +1,2 @@
+edge,i,j,roi1,roi2,network1,network2,t_score,neg_log10_p,p_value
+22657,181,214,Lateral Occipital Cortex Sup R,Pallidum R,Default,Subcortical,4.732095040805655,1.325182286539051,0.04729527047295271
