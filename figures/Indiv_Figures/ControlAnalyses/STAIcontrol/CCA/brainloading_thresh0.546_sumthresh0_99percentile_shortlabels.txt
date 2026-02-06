@@ -1,0 +1,62 @@
+Thalamus R - Subcortical: 47
+Postcentral Gyrus R - Intero: 25
+Postcentral Gyrus R - Intero: 23
+Precentral Gyrus L - SomMot: 21
+Postcentral Gyrus L - Intero: 20
+Putamen L - Subcortical: 19
+Postcentral Gyrus R - Intero: 19
+Postcentral Gyrus L - Intero: 18
+Postcentral Gyrus R - Intero: 18
+Caudate R - Subcortical: 17
+Precentral Gyrus L - SomMot: 16
+Thalamus L - Subcortical: 15
+Postcentral Gyrus R - Intero: 15
+Precentral Gyrus R - SomMot: 14
+Putamen R - Subcortical: 13
+Precentral Gyrus R - SomMot: 13
+Precentral Gyrus R - SomMot: 12
+Precentral Gyrus L - SomMot: 11
+Precentral Gyrus L - SomMot: 10
+Postcentral Gyrus R - Intero: 10
+Postcentral Gyrus L - Intero: 9
+Paracingulate Gyrus R - Intero: 8
+Juxtapositional Lobule Cortex  L - SomMot: 7
+Caudate L - Subcortical: 7
+Insular Cortex R - Intero: 7
+Cingulate Gyrus Post R - Intero: 6
+Cingulate Gyrus Ant L - Intero: 5
+Insular Cortex L - Intero: 5
+Postcentral Gyrus L - Intero: 4
+Superior Parietal Lobule R - SomMot: 4
+Central Opercular Cortex R - Intero: 4
+Juxtapositional Lobule Cortex  R - SomMot: 4
+Precentral Gyrus L - SomMot: 3
+Parietal Operculum Cortex R - SomMot: 3
+Superior Parietal Lobule R - DorsAttn: 2
+Superior Parietal Lobule L - SomMot: 2
+Supramarginal Gyrus Post L - Default: 2
+Frontal Pole R - Cont: 2
+Planum Temporale R - SomMot: 2
+Superior Temporal Gyrus Ant R - Default: 2
+Central Opercular Cortex L - Intero: 1
+Lateral Occipital Cortex Inf L - Vis: 1
+Superior Frontal Gyrus L - SomMot: 1
+Planum Temporale L - SomMot: 1
+Central Opercular Cortex L - Intero: 1
+Precentral Gyrus R - SomMot: 1
+Postcentral Gyrus L - Intero: 1
+Superior Parietal Lobule L - DorsAttn: 1
+Planum Temporale L - SalVentAttn: 1
+Cingulate Gyrus Post L - Intero: 1
+Superior Temporal Gyrus Ant L - Default: 1
+Lingual Gyrus R - Vis: 1
+Lateral Occipital Cortex Inf R - Vis: 1
+Superior Frontal Gyrus R - SomMot: 1
+Inferior Temporal Gyrus TempOcci R - DorsAttn: 1
+Middle Temporal Gyrus TempOcci R - DorsAttn: 1
+Postcentral Gyrus R - Intero: 1
+Postcentral Gyrus R - Intero: 1
+Supramarginal Gyrus Post R - SalVentAttn: 1
+Frontal Pole R - Cont: 1
+Superior Temporal Gyrus Post R - Default: 1
+Lingual Gyrus L - Vis: 1
