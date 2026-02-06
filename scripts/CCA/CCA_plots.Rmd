@@ -192,7 +192,6 @@ atlas_labels$yeo7Intero_Shortlabels <- yeo7
 
 ```
 
-
 # Make/test chordplot R function
 ```{r}
 
@@ -345,8 +344,8 @@ chordplot <- function(cca_filename, threshold_percentile, chord2plot, savepath, 
   return(list(my_adj_list=my_adj_list, threshold=threshold))
 }
 
-
 ```
+
 
 ```{r}
 # Make labels in chordplot even shorter
@@ -387,9 +386,9 @@ atlas_labels$shortER_labels <- Reduce(function(x, pattern) {
   gsub(paste0("\\b", pattern, "\\b"), replacement_rules[pattern], x, ignore.case = TRUE)
 }, names(replacement_rules), init = atlas_labels$short_labels)
 
+#write.csv(atlas_labels, file = '~/Git/BodyWanderingCCA/data/abend216_yeo7+InteroNetwork_shortlabels.csv', row.names = FALSE)
+
 ```
-
-
 
 ```{r}
 
@@ -439,9 +438,7 @@ draw(lgd_list_vertical, x = unit(4, "mm"), y = unit(4, "mm"), just = c("left", "
 
 dev.off()
 
-
 ```
-
 
 
 # run chordplot function 
@@ -496,9 +493,3 @@ atlas_labels$BA <- unlist(extra_labels['ba.label', ])
 write.csv(atlas_labels, file = '~/Git/body_wandering/data/abend216_ALLlabels.csv', row.names = FALSE)
 
 ```
-
-
-
-
-
-
