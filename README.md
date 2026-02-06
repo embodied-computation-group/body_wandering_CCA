@@ -1,4 +1,4 @@
-# Body-wandering reveals an embodied dimension of thought with distinct affective and neural signatures
+# Uncovering the embodied dimension of the wandering mind (Body-Wandering)
 
 Leah Banellis, Niia Nikolova, Malthe Brændholdt, Melina Vejlø, Francesca Fardo, Jonathan Smallwood, Micah G. Allen
 
@@ -6,7 +6,7 @@ Leah Banellis, Niia Nikolova, Malthe Brændholdt, Melina Vejlø, Francesca Fardo
 
 ## Abstract
 
-Humans often engage in self-generated thoughts when unoccupied by external events, a phenomenon commonly known as mind-wandering. Previous research has predominantly focused on the cognitive aspects of mind-wandering, overlooking the potential embodied or interoceptive components that contribute to our ongoing thought patterns. In this study, we addressed this gap by exploring “body-wandering”—thoughts related to internal bodily sensations such as breathing, heartbeat, and gastrointestinal functions. To assess body-wandering, we applied a retrospective multi-dimensional interoceptive experience sampling approach in 536 healthy participants concurrently with resting-state functional brain imaging. Our findings revealed that body-wandering is distinct from cognitively focused thoughts, underscoring the unique role of embodied processes in ongoing experience. Embodied thought patterns were associated with increased negative affect, heightened physiological arousal, and reduced ADHD symptoms. In contrast, cognitive-focused thoughts were linked to decreased negative affect, lower arousal, and higher depression symptoms. Notably, body-wandering corresponded with a unique neural signature involving increased connectivity between somatomotor, interoceptive, and thalamocortical brain networks. These results emphasise the importance of incorporating embodied processes into theoretical models of mind-wandering and suggest that individual differences in body-wandering significantly impact emotional states and mental health.
+When at rest, the mind becomes preoccupied with self-generated thoughts, commonly known as mind-wandering. While the social, autobiographical, and temporal features of these thoughts have been extensively studied, little is known about how frequently the wandering mind turns towards the interoceptive and somatic body. To map this under-explored component of "body-wandering," we conducted a large-scale neuroimaging study in 536 healthy participants, expanding a retrospective multidimensional experience sampling approach to include probes targeting visceral and somatomotor thoughts. Our findings reveal a robust inter-individual dimension of body-wandering characterized by negative affect, high autonomic arousal, and a reduction in socially oriented thoughts. Despite this negative tone, individual differences in the propensity for body-wandering were associated with lower self-reported symptoms of ADHD and depression. Multivariate functional connectivity analyses further revealed that affective, body-oriented thoughts are related to a pattern of thalamocortical connectivity interlinking somatomotor and interoceptive-allostatic cortical networks. Collectively, these results demonstrate that self-generated thoughts exhibit core embodied features which are linked to the ongoing physical and emotional milieu of the visceral body.
 
 ---
 
@@ -22,7 +22,9 @@ Access the preprint here: [https://www.biorxiv.org/content/10.1101/2024.10.25.62
 
 ## Figures
 
-![Body-Wandering & Cognitive-Wandering Relationships](figures/Final_Figures/Fig3_AverageAnalyses.png)
+![Body-Wandering & Cognitive-Wandering Relationships](figures/Final_Figures/Fig3_EFA.png)
+
+
 
 ![Cortical Fingerprint of Embodied Mind-Wandering](figures/Final_Figures/Fig4_NeuralCCA.png)
 
@@ -31,15 +33,13 @@ Access the preprint here: [https://www.biorxiv.org/content/10.1101/2024.10.25.62
 Note: data & scripts for raw/preprocessed fMRI, raw physio, and raw survey individual subject data stored in Visceral Mind Project BIDS structure:  
 
 **1. Body/Mind-Wandering Item-level Analyses**:  
-    BodyWanderingCCA/scripts/body_wandering_itemplots.Rmd
-      
+    /BodyWanderingCCA/scripts/body_wandering_itemplots.Rmd
 
-**2. Network Analysis of Body/Mind-Wandering Items**:  
-    BodyWanderingCCA/scripts/body_wandering_Network.Rmd
+**2. Mental Health and Physiological Arousal Relationships with Body/Cognitive-Wandering**:  
+    /BodyWanderingCCA/scripts/ItemAnalyses_MHPhysio.Rmd
 
-
-**3. Mental Health and Physiological Relationships with Body/Cognitive-Wandering Averages**:  
-    /BodyWanderingCCA/scripts/Correlations_MindWandAverages.Rmd
+**3. Exploratory Factor Analysis of Body/Mind-Wandering Items**:  
+    /BodyWanderingCCA/scripts/MDIES_validity_reliability.Rmd
 
 --------------------------------------------------------------------------------------------------------
 
@@ -83,17 +83,21 @@ Note: data & scripts for raw/preprocessed fMRI, raw physio, and raw survey indiv
 
 --------------------------------------------------------------------------------------------------------
 
-**6. Additional analyses and control analyses**:
+**6. Convergent Validity of EFA-related connectivity and CCA connectivity**:  
+    /BodyWanderingCCA/scripts/ControlAnalyses/FactorConnectivity.ipynb
+    (& end section of /BodyWanderingCCA/scripts/MDIES_validity_reliability.Rmd)
+
+--------------------------------------------------------------------------------------------------------
+
+**7. Additional analyses and control analyses**:
 
   6. Additional analyses and control analyses:
   ~/Git/BodyWanderingCCA/scripts/ControlAnalyses
   
 --------------------------------------------------------------------------------------------------------
 
-### Extra scripts for plots and JASP statistics:
-
-Wordclouds of Mind-Wandering Summary Scores:
-    /BodyWanderingCCA/scripts/ExtraPlots/wordcloud.m
+### JASP statistics:
 
 Multiple Linear Regressions of Body/Cognitive-Wandering Average Relationships, Patial Correlations, and Wilcoxon Tests (had to hide currently due to protected mental health data - will be released with Visceral Mind Project): 
     /BodyWanderingCCA/data/JASP/BodyWanderingStats.jasp
+  
