@@ -1,0 +1,390 @@
+---
+title: "Bladder_controlanalyses"
+output: html_document
+date: "2025-01-27"
+---
+
+# Regress Bladder from items instead & recompute Psych and Physio correlations with Mind-Wandering items
+```{r}
+# clean slate to be sure
+rm(list = ls())
+
+# check for pacman package and install if not found
+if (!require("pacman")) install.packages("pacman")
+  pacman::p_load(tidyverse, here, corrplot, ggcorrplot, heatmap3, patchwork, cowplot, ggpubr, R.matlab, dplyr, tidyr)
+
+alldata <- read_csv("~/Git/body_wandering/data/BodyWanderingData.csv")
+MDESitems <- alldata[ ,c(3:21,23:24)] # without bladder
+Bladder <- alldata[[22]]
+
+# regress Bladder from each MDESitem and extract residuals
+res_df <- as.data.frame(lapply(MDESitems,
+                               \(x) residuals(lm(x ~ Bladder, na.action = na.exclude))))
+
+# Combine residuals with participant IDs
+adjusted_scores <- data.frame(
+  participant_id = alldata$participant_id,
+  res_df,
+  ADHD = alldata[ ,c("asrs.combined.sum")],
+  Depression = alldata[ ,c("mdi")],
+  HR = alldata[ ,c("Heart Rate")],
+  HRV = alldata[ ,c("HRV RMSSD")]
+)
+
+cordata <- adjusted_scores[ ,2:ncol(adjusted_scores)]
+# Kept old colnames..
+col2log <- c("mdi", "HRV.RMSSD")
+for (col in col2log) {
+  cordata[ ,col] <- log(cordata[ ,col] + 1)
+}
+cordata[,3:ncol(cordata)] <- cordata[,3:ncol(cordata)] %>% mutate_if(is.numeric, ~ifelse(abs(. - mean(., na.rm = TRUE)) > 3 * sd(., na.rm = TRUE), NA, .)) # remove outliers
+colnames(cordata) <- c(colnames(adjusted_scores[ ,2:22]), "ADHD (ASRS)", "Depression (MDI)", "Heart Rate", "HRV RMSSD") 
+
+
+cormatrix_full <- function(cordata, title, subtitle) {
+  pval_fdr <- psych::corr.test(cordata, method = "spearman", adjust = "fdr")$p
+  rval_fdr <- psych::corr.test(cordata, method = "spearman", adjust = "fdr")$r
+  cp1 <- ggcorrplot(rval_fdr, p.mat = pval_fdr, hc.order=FALSE,
+             type='full', insig='blank', method = "square", sig.level = 0.05, #circle?
+             outline.col = "black",
+            # lab = TRUE,
+             ggtheme = ggplot2::theme_minimal,
+             tl.cex = 8,
+             colors = c("#6D9EC1", "white", "#EA5F21FF")) +
+    geom_hline(yintercept = ncol(rval_fdr)+.5, linetype = 3, size = 1) +
+    geom_vline(xintercept = .5, linetype = 3, size = 1) +
+    geom_abline(intercept = 0, slope = 1, linetype = 3, size = 1) +
+    ggtitle(title) +
+    labs(subtitle = subtitle)
+  
+  cp1 
+}
+
+cormatrix_full(cordata, "Body-Wandering Items", "Item Correlations")
+
+```
+
+
+
+```{r}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(boot)
+
+corbarplot_bootCIs <- function(cormatrix, data, var2orderby, var1, var2,
+                               colour1, colour2, R = 10000) {
+  # 1) Bootstrap CIs
+  cm <- as.data.frame(cormatrix)
+  items <- rownames(cm)
+
+  pairs <- expand.grid(
+    Correlation = c(var1, var2),
+    Items       = items,
+    stringsAsFactors = FALSE
+  )
+
+  boot_spear <- function(dat, ind, x, y) {
+    d <- dat[ind, ]
+    cor(d[[x]], d[[y]], method = "spearman",
+        use = "pairwise.complete.obs")
+  }
+
+  ci_list <- lapply(seq_len(nrow(pairs)), function(i) {
+    row <- pairs[i, ]
+    b <- boot::boot(
+      data,
+      statistic = function(d, ind)
+        boot_spear(d, ind, row$Correlation, row$Items),
+      R = R
+    )
+    bc <- boot::boot.ci(b, type = "perc")
+    c(ci_low = bc$percent[4], ci_high = bc$percent[5])
+  })
+
+  ci_df <- cbind(pairs, do.call(rbind, ci_list)) %>% as.data.frame()
+
+  # 2) Your original reshape + ordering
+  cormatrix <- cm
+  cormatrix$Items <- rownames(cormatrix)
+
+  cormatrix_long <- cormatrix %>%
+    pivot_longer(cols = -Items,
+                 names_to = "Correlation",
+                 values_to = "Value") %>%
+    mutate(Vars = factor(Items, levels = unique(Items)))
+
+  sort_order <- cormatrix_long %>%
+    dplyr::filter(Correlation == var2orderby) %>%
+    dplyr::arrange(desc(Value)) %>%
+    dplyr::mutate(order = row_number()) %>%
+    dplyr::select(Items, order)
+
+  plot_df <- cormatrix_long %>%
+    left_join(sort_order, by = "Items") %>%
+    left_join(ci_df, by = c("Items", "Correlation"))
+
+  # 3) Plot – use reorder(Items, -order) to force ordering
+  dodge_width <- 0.8
+
+  ggplot(plot_df,
+         aes(x = reorder(Items, -order),
+             y = Value,
+             fill = Correlation)) +
+    geom_col(position = position_dodge(dodge_width), width = 0.7) +
+    geom_errorbar(aes(ymin = ci_low, ymax = ci_high),
+                  position = position_dodge(dodge_width),
+                  width = 0, colour = "grey60") +
+    theme_minimal() +
+    scale_fill_manual(values = setNames(c(colour1, colour2),
+                                        c(var1, var2))) +
+    labs(y = "Spearman Coefficient",
+         x = "Items") +
+         #title = "Mind-Wandering Correlations") +
+    theme(
+      axis.title.y = element_text(size = 16),
+      axis.title.x = element_text(size = 16),
+      axis.text.y  = element_text(size = 16,
+                                  margin = margin(t = 0, r = 0, b = 0,
+                                                  l = 10, unit = "pt")),
+      axis.text.x  = element_text(size = 16,
+                                  margin = margin(t = 0, r = 0, b = 10,
+                                                  l = 0, unit = "pt"),
+                                  angle = 90, vjust = 0.5, hjust = 1),
+    
+      legend.position = c(0.98, 0.02),      # near bottom-right inside panel
+      legend.justification = c(1, 0),       # anchor bottom-right of legend here
+      legend.direction = "vertical",
+      legend.background = element_rect(fill = alpha("white", 0.8), colour = NA),
+      legend.text  = element_text(size = 15),
+      legend.title = element_text(size = 16),
+    
+      panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank(),
+      panel.background = element_blank(),
+      axis.line = element_line(colour = "black")
+    )
+
+}
+
+# Mental Health - Item correlation BarPlot
+cormatrix <- t(psych::corr.test(cordata, method = "spearman", adjust = "fdr")$r[22:23, 1:21])
+p1 <- corbarplot_bootCIs(
+  cormatrix   = cormatrix,
+  data        = cordata,
+  var2orderby = "Depression (MDI)",
+  var1        = "Depression (MDI)",
+  var2        = "ADHD (ASRS)",
+  colour1     = "#e7e2dc", 
+  colour2     = "#b6a997"
+)
+
+# Save the plot with specified dimensions
+ggsave(here::here("figures", "BWitems_Psychcorrelations_bladderregress_BootstrappedCIs.png"), plot=p1, width = 6.5, height = 7.5, dpi = 300, bg = 'white')
+
+
+# Physiological Arousal - Item correlation BarPlot
+cormatrix <- t(psych::corr.test(cordata, method = "spearman", adjust = "fdr")$r[24:25, 1:21])
+p2 <- corbarplot_bootCIs(
+  cormatrix   = cormatrix,
+  data        = cordata,
+  var2orderby = "HRV RMSSD",
+  var1        = "Heart Rate",
+  var2        = "HRV RMSSD",
+  colour1     = "#636363", #"#fc4f29", #a8d2fb",
+  colour2     = "#c6c6c6", #"#feb24c" #42ab5d", #8688bc"
+)
+
+# Save the plot with specified dimensions
+ggsave(here::here("figures", "BWitems_Physiocorrelations_bladderregress_BootstrappedCIs.png"), plot=p2, width = 6.5, height = 7.5, dpi = 300, bg = 'white')
+
+
+library(patchwork)
+combined <- p1 + p2
+
+# save one figure
+ggsave(here::here("figures", "BWitems_PsychoPhysiocorrelations_bladderregress_bootstrappedCIs.png"),
+       plot = combined, width = 13, height = 7.5, dpi = 300, bg = "white")
+
+```
+
+
+
+```{r}
+sigcorr <- function(ct, targets, items = 1:22, alpha = .05) {
+  # ensure all pval matrix is FDR-corrected
+  ct$p[lower.tri(ct$p)] <- t(ct$p)[lower.tri(ct$p)]  # copy adjusted upper into lower #isSymmetric(ct$p)
+  diag(ct$p) <- NA
+  
+  r <- ct$r[items, targets]
+  p <- ct$p[items, targets]
+
+  ix <- which(p < alpha, arr.ind = TRUE)
+  if (!nrow(ix)) return(NULL)
+
+  data.frame(
+    Var    = rownames(r)[ix[, 1]],
+    Target = colnames(r)[ix[, 2]],
+    report = paste0(
+      "r\u209B = ", round(r[ix], 3),
+      ifelse(p[ix] < .001,
+             ", pFDR < .001",
+             paste0(", pFDR = ", sub("^0", "", sprintf("%.3f", p[ix]))))
+    ),
+    row.names = NULL
+  )
+}
+
+# corrected for bladder
+ct <- psych::corr.test(cordata, method="spearman", adjust="fdr")
+sigcorr(ct, 22:23)
+sigcorr(ct, 24:25)
+
+```
+
+
+# correlate orig item corr vals - with bladder-regressed item corr vals
+```{r}
+
+origdata <- data.frame(
+  MDESitems,
+  ADHD = alldata[ ,c("asrs.combined.sum")],
+  Depression = alldata[ ,c("mdi")],
+  HR = alldata[ ,c("Heart Rate")],
+  HRV = alldata[ ,c("HRV RMSSD")]
+)
+colnames(origdata) <- c(colnames(MDESitems), "ADHD (ASRS)", "Depression (MDI)", "Heart Rate", "HRV RMSSD") 
+
+ct_orig <- psych::corr.test(origdata, method="spearman", adjust="fdr")
+sigcorr(ct_orig, 22:23)
+sigcorr(ct_orig, 24:25)
+
+idx <- lower.tri(ct$r, diag=FALSE)
+ct_grand <- cor(ct$r[idx], ct_orig$r[idx], method='spearman')
+
+scatterplot_gg2 <- function(v1, v2, xlab, ylab, colour="#2c7fb8") {
+  df <- data.frame(v1, v2)
+  ct <- psych::corr.test(df, method="spearman", adjust="fdr")
+  r  <- round(ct$r[1,2], 3)
+  p  <- ct$p[1,2]
+  ptxt <- ifelse(p < .001, "<.001", round(p, 3))
+  
+  ggplot(df, aes(v1, v2)) +
+    geom_point(colour=colour, size=3, alpha=.5) +
+    geom_smooth(method=lm, colour="#909086", fill="#69b3a2", se=TRUE) +
+    labs(x=xlab, y=ylab, title=paste0("rs = ", r, ", pFDR = ", ptxt)) +
+    theme_classic(base_size = 14)
+}
+
+
+p_scatter <- scatterplot_gg2(ct_orig$r[idx], ct$r[idx], "Original r-values", "Bladder-corrected r-values")
+ggsave("~/Git/BodyWanderingCCA/figures/revisionplots_all/Bladdercontrol/Scatterplots_Bladder.png", plot=p_scatter, height = 6.5, width = 5, dpi = 300, units = "in")
+
+```
+
+
+```{r}
+library(boot)
+
+# Bootstrapping function
+boot_spearman <- function(data, indices, var1, var2) {
+  d <- data[indices, ]
+  return(cor(d[[var1]], d[[var2]], method = "spearman"))
+}
+
+# Wrapper to compute 95% CI
+boot_ci_spearman <- function(df, var1, var2, R = 10000) {
+  boot_out <- boot(df, statistic = function(data, i) boot_spearman(data, i, var1, var2), R = R)
+  ci <- boot.ci(boot_out, type = "perc")$percent[4:5]
+  return(data.frame(
+    Var1 = var1,
+    Var2 = var2,
+    ci_low = ci[1],
+    ci_high = ci[2]
+  ))
+}
+
+# ensure all pval matrix is FDR-corrected
+ct <- psych::corr.test(cordata, method="spearman", adjust="fdr")
+ct$p[lower.tri(ct$p)] <- t(ct$p)[lower.tri(ct$p)]  # copy adjusted upper into lower #isSymmetric(ct$p)
+diag(ct$p) <- NA
+# affect-body p-vals controlled for bladder
+cor_pvals_AB <- ct$p[5:6, 15:21]
+
+# plot
+Affect_Body <- data.frame(res_df) %>% dplyr::select(Pos, Neg, Arousal, Body, Breath, Heart, Movement, Skin, Stomach) %>% #Bladder
+  na.omit()
+
+affect_vars <- c("Pos", "Neg")
+body_vars <- c("Arousal", "Body", "Breath", "Heart", "Movement", "Skin", "Stomach") #"Bladder",
+
+# Compute all CIs
+boot_results <- do.call(rbind, lapply(body_vars, function(bv) {
+  do.call(rbind, lapply(affect_vars, function(av) {
+    boot_ci_spearman(Affect_Body, av, bv, R = 10000)
+  }))
+}))
+
+boot_results <- boot_results %>% 
+  rename(Correlation = Var1, Items = Var2)
+
+# Correlation plots
+cormatrix_AB <-t(psych::corr.test(Affect_Body, method = "spearman", adjust = "fdr")$r[1:2, 3:9])
+#cor_pvals_AB <-t(psych::corr.test(Affect_Body, method = "spearman", adjust = "fdr")$p[1:2, 3:9])
+
+cormatrix_AB <- as.data.frame(cormatrix_AB)
+cormatrix_AB$Items <- rownames(cormatrix_AB)
+
+# Convert to long format
+cormatrix_AB<- cormatrix_AB %>%
+  pivot_longer(cols = -Items, names_to = "Correlation", values_to = "Value") %>%
+  mutate(Items = factor(Items, levels = unique(Items))) # Ensure the order is as desired
+
+#######
+cormatrix_AB <- cormatrix_AB %>%
+  left_join(boot_results, by = c("Items", "Correlation"))
+
+# ---- ORDERING ADDED HERE ----
+sort_order <- cormatrix_AB %>%
+  dplyr::filter(Correlation == "Pos") %>%
+  dplyr::arrange(desc(Value)) %>%
+  dplyr::pull(Items)
+
+cormatrix_AB <- cormatrix_AB %>%
+  dplyr::mutate(Items = factor(Items, levels = sort_order))
+
+# ---- PLOT ----
+plot <- ggplot(cormatrix_AB, aes(x = Items, y = Value, fill = Correlation)) +
+  geom_col(position = position_dodge2(0.2), width = 1, linewidth=0.5) + #colour = "grey70",
+  geom_errorbar(
+    aes(ymin = ci_low, ymax = ci_high),
+    position = position_dodge(0.9),
+    width = 0,
+    colour = "grey40"
+  ) +
+  coord_flip() +
+  theme_minimal() +
+  scale_fill_manual(values = c("Neg" = "lightslateblue", "Pos" = "#ffd670")) +
+  labs(y = "Spearman Coefficient", title = "Bladder Control Correlations") +
+  theme(
+    axis.title.y = element_text(size = 16),
+    axis.title.x = element_text(size = 16),
+    axis.text.y = element_text(size = 16, margin = margin(t = 0, r = 0, b = 0, l = 10, unit = "pt")),
+    axis.text.x = element_text(size = 16, margin = margin(t = 0, r = 0, b = 10, l = 0, unit = "pt")),
+    legend.text = element_text(size = 16),
+    legend.title = element_text(size = 15),
+    plot.title = element_text(size = 18, face = "bold"),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_blank(),
+    axis.line = element_line(colour = "black")
+  )
+
+print(plot)
+
+
+# Save the plot with specified dimensions
+ggsave(here::here("figures", "AffectBody_correlations_bladderegress_BootstrappedCIs.png"), plot, width = 6.5, height = 8, dpi = 300, bg = 'white')
+
+
+```

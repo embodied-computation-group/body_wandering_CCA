@@ -1,6 +1,5 @@
 ---
 title: "Robustness check of Body-Wandering results"
-output: html_notebook
 ---
 
 # Item Ratings Robustness
@@ -73,7 +72,6 @@ icc_result <- icc(icc_matrix, model = "twoway", type = "agreement", unit = "sing
 print(paste("Intraclass Correlation Coefficient (ICC) using median item ratings:", icc_result$value))
 
 ```
-
 
 # Corr plots (body-related factors & emotion) Robustness
 ```{r}
@@ -382,3 +380,115 @@ print(paste("Intraclass Correlation Coefficient (ICC) using significant Neg-wand
 ```
 
 
+# Psychophysiological Correlations - ITEMS - Robustness
+```{r}
+
+# Psych & Physio together (to correct multiple comparisons)
+rest_probes <- read.csv("~/Git/BodyWanderingCCA/data/rest_probes.csv", row.names = 1)
+alldata <- read_csv("~/Git/body_wandering/data/BodyWanderingData.csv")
+cols = c("asrs.combined.sum", "mdi", "Heart Rate", "HRV RMSSD")
+corrdata <- cbind(rest_probes, alldata[ ,cols]) 
+col2log <- c("mdi", "HRV RMSSD") 
+for (col in col2log) {
+  corrdata[ ,col] <- log(corrdata[ ,col] + 1)
+}
+corrdata[,3:ncol(corrdata)] <- corrdata[,3:ncol(corrdata)] %>% mutate_if(is.numeric, ~ifelse(abs(. - mean(., na.rm = TRUE)) > 3 * sd(., na.rm = TRUE), NA, .)) # remove outliers
+colnames(corrdata) <- c(colnames(rest_probes), "ADHD (ASRS)", "Depression (MDI)", "Heart Rate", "HRV RMSSD")
+
+# run once
+#ct <- psych::corr.test(corrdata, method = "spearman", adjust = "fdr")
+
+# Split dataset into Odd and Even participants
+row_indices <- seq_len(nrow(corrdata))
+datasets <- list(
+  "Odd"  = corrdata[row_indices %% 2 == 1, ],  # Exclude ID column
+  "Even" = corrdata[row_indices %% 2 == 0, ]
+)
+
+# Compute Spearman correlation for each group - MENTAL HEALTH
+corr_results <- list()
+pval_results <- list()
+for (key in names(datasets)) {
+  corr_matrix <- psych::corr.test(datasets[[key]], method = "spearman", adjust = "fdr")$r[1:22, 23:24]
+  p_matrix <- psych::corr.test(datasets[[key]], method = "spearman", adjust = "fdr")$p[1:22, 23:24]
+  corr_results[[key]] <- as.data.frame(t(corr_matrix))
+  corr_results[[key]]$Vars <- rownames(corr_results[[key]])
+  # Convert to dataframe and store p-values
+  pval_results[[key]] <- as.data.frame(t(p_matrix))
+  pval_results[[key]]$Items <- rownames(pval_results[[key]])
+}
+
+# Combine results into a single dataframe
+corr_combined <- left_join(
+  pivot_longer(corr_results$Odd, cols = -Vars, names_to = "Correlation", values_to = "Odd"),
+  pivot_longer(corr_results$Even, cols = -Vars, names_to = "Correlation", values_to = "Even"),
+  by = c("Vars", "Correlation")
+)
+
+
+# Interclass Correlation
+library('irr')
+
+# Identify significant correlations in orig full dataset
+cor_pvals <- t(psych::corr.test(corrdata, method = "spearman", adjust = "fdr")$p[1:22, 23:24])
+sig_mask <- cor_pvals < 0.05
+
+# Filter correlations based on significance mask
+icc_matrix <- cbind(
+  corr_results$Odd[, -ncol(corr_results$Odd)][sig_mask],
+  corr_results$Even[, -ncol(corr_results$Even)][sig_mask]
+)
+
+# Compute ICC (Two-way model, Agreement type)
+icc_result <- icc(icc_matrix, model = "twoway", type = "agreement", unit = "single")
+
+# Print ICC result
+print(paste("Intraclass Correlation Coefficient (ICC) using significant MENTALHEALTH correlations:", 
+            round(icc_result$value, 3)))
+
+
+
+
+
+# Compute Spearman correlation for each group - PHYSIOLOGICAL AROUSAL
+corr_results <- list()
+pval_results <- list()
+for (key in names(datasets)) {
+  corr_matrix <- psych::corr.test(datasets[[key]], method = "spearman", adjust = "fdr")$r[1:22, 25:26]
+  p_matrix <- psych::corr.test(datasets[[key]], method = "spearman", adjust = "fdr")$p[1:22, 25:26]
+  corr_results[[key]] <- as.data.frame(t(corr_matrix))
+  corr_results[[key]]$Vars <- rownames(corr_results[[key]])
+  # Convert to dataframe and store p-values
+  pval_results[[key]] <- as.data.frame(t(p_matrix))
+  pval_results[[key]]$Items <- rownames(pval_results[[key]])
+}
+
+# Combine results into a single dataframe
+corr_combined <- left_join(
+  pivot_longer(corr_results$Odd, cols = -Vars, names_to = "Correlation", values_to = "Odd"),
+  pivot_longer(corr_results$Even, cols = -Vars, names_to = "Correlation", values_to = "Even"),
+  by = c("Vars", "Correlation")
+)
+
+
+# Interclass Correlation
+library('irr')
+
+# Identify significant correlations in orig full dataset
+cor_pvals <- t(psych::corr.test(corrdata, method = "spearman", adjust = "fdr")$p[1:22, 25:26])
+sig_mask <- cor_pvals < 0.05
+
+# Filter correlations based on significance mask
+icc_matrix <- cbind(
+  corr_results$Odd[, -ncol(corr_results$Odd)][sig_mask],
+  corr_results$Even[, -ncol(corr_results$Even)][sig_mask]
+)
+
+# Compute ICC (Two-way model, Agreement type)
+icc_result <- icc(icc_matrix, model = "twoway", type = "agreement", unit = "single")
+
+# Print ICC result
+print(paste("Intraclass Correlation Coefficient (ICC) using significant AROUSAL correlations:", 
+            round(icc_result$value, 3)))
+
+```
