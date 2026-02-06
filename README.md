@@ -1,4 +1,4 @@
-# Uncovering the embodied dimension of the wandering mind (Body-Wandering)
+# Uncovering the embodied dimension of the wandering mind (i.e., body-wandering)
 
 Leah Banellis, Niia Nikolova, Malthe Brændholdt, Melina Vejlø, Francesca Fardo, Jonathan Smallwood, Micah G. Allen
 
@@ -96,8 +96,3 @@ Note: data & scripts for raw/preprocessed fMRI, raw physio, and raw survey indiv
   
 --------------------------------------------------------------------------------------------------------
 
-### JASP statistics:
-
-Multiple Linear Regressions of Body/Cognitive-Wandering Average Relationships, Patial Correlations, and Wilcoxon Tests (had to hide currently due to protected mental health data - will be released with Visceral Mind Project): 
-    /BodyWanderingCCA/data/JASP/BodyWanderingStats.jasp
-  
