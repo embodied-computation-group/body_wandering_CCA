@@ -24,9 +24,9 @@ Access the preprint here: [https://www.biorxiv.org/content/10.1101/2024.10.25.62
 
 ![Body-Wandering & Cognitive-Wandering Relationships](figures/Final_Figures/Fig3_EFA.png)
 
+![Body-Wandering Relates with Lower Depression/ADHD Symptoms & Higher Physiological Arousal](figures/Final_Figures/Fig2_Mentalhealth_Arousal.png)
 
-
-![Cortical Fingerprint of Embodied Mind-Wandering](figures/Final_Figures/Fig4_NeuralCCA.png)
+![Cortical Fingerprint of Embodied Mind-Wandering](figures/Final_Figures/Fig4_CCA.png)
 
 # Scripts for Body-Wandering Analyses
 
