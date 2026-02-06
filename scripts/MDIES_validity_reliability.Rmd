@@ -13,7 +13,7 @@ rm(list = ls())
 
 # check for pacman package and install if not found
 if (!require("pacman")) install.packages("pacman")
-  pacman::p_load(readr,psych,polycor,corrplot,lattice,nFactors,GPArotation,EFA.dimensions,dplyr, tidyverse, here, circlize, BiocManager, ComplexHeatmap, reshape2, ggcorplot)
+  pacman::p_load(readr,psych,polycor,corrplot,lattice,nFactors,GPArotation,EFA.dimensions,dplyr, tidyverse, here, circlize, BiocManager, ComplexHeatmap, reshape2, ggcorplot, R.matlab)
 
 rest_probes <- read_csv("/home/leah/Git/BodyWanderingCCA/data/rest_probes.csv")
 rest_probes <- na.omit(rest_probes)
@@ -68,22 +68,9 @@ cat("Omega Total (ωt):", omega_results$omega.tot, "\n")
 **Determine number of factors**
 ```{r, message=FALSE}
 
-# manual screeplot example:
-ev <- eigen(hetcor(rest_probes)$correlations)
-ap <- parallel(subject=sample_size,var=ncol(rest_probes),
-               rep=100,cent=.05)
-nS <- nScree(x=ev$values, aparallel=ap$eigen$qevpea)
-plotnScree(nS)
-
-sprintf("Parallel Analysis recommends %s factors",nS$Components$nparallel)
-
 # Minimum Average Partial (MAP) test
 MAP_results = MAP(rest_probes, corkind='pearson', verbose=FALSE)
 sprintf("MAP recommends %s (1976) or %s (2000) factors",MAP_results$NfactorsMAP,MAP_results$NfactorsMAP4) #MAP_results$NfactorsMAP (1976 MAP test), MAP_results$NfactorsMAP4 (revised 2000 MAP test)
-
-
-# nFactors function (multiple factor estimates):
-nfactors((hetcor(rest_probes)$correlations), n.obs=sample_size)
 
 ```
 
@@ -130,7 +117,7 @@ plot_thresholded_loadings <- function(fa_result, threshold = 0.3, title = "EFA L
     mutate(across(-Item, ~ ifelse(abs(.) < threshold, NA, .)))
   
   # Convert to long format
-  loadings_long <- melt(loadings_thresholded, id.vars = "Item",
+  loadings_long <- reshape2::melt(loadings_thresholded, id.vars = "Item",
                         variable.name = "Factor", value.name = "Loading")
   loadings_long <- na.omit(loadings_long)
   loadings_long$Item <- factor(loadings_long$Item, levels = loadings_sorted$Item)
@@ -160,11 +147,79 @@ plot_thresholded_loadings <- function(fa_result, threshold = 0.3, title = "EFA L
 # Plot thresholded loadings
 plot_thresholded_loadings(fa.restResults, threshold = 0.3)
 
+```
 
-# # correlate factors
-# scores<-factor.scores(rest_probes, fa.restResults, method = "Bartlett")
-# scores<-as.data.frame(scores$scores)
-# psych::corr.test(scores, method = "spearman", adjust = "fdr")
+# EFA loading bar plot
+```{r}
+
+plot_loadings_bar <- function(fa_result, threshold = 0, title = "Exploratory Factor Analysis") {
+  # Extract and prepare loadings
+  loadings_matrix <- as.data.frame(unclass(fa_result$loadings))
+  colnames(loadings_matrix) <- paste0("Factor ", seq_len(ncol(loadings_matrix)))
+  loadings_matrix$Item <- rownames(loadings_matrix)
+  
+  # Identify factor columns
+  factor_cols <- grep("^Factor", colnames(loadings_matrix), value = TRUE)
+  
+  # Order items by Factor 1 loadings (descending)
+  loadings_matrix <- loadings_matrix %>% arrange(desc(`Factor 1`))
+  
+  # Reshape to long format
+  loadings_long <- loadings_matrix %>%
+    pivot_longer(cols = all_of(factor_cols),
+                 names_to = "Factor",
+                 values_to = "Loading")
+  
+  # Apply threshold
+  loadings_long <- loadings_long %>%
+    mutate(Loading_thresholded = ifelse(abs(Loading) >= threshold, Loading, NA)) %>%
+    drop_na(Loading_thresholded)
+  
+  # Preserve item order (by Factor 1)
+  loadings_long$Item <- factor(loadings_long$Item, 
+                               levels = unique(loadings_matrix$Item))
+  
+  # Determine symmetric range for colour scaling
+  rng <- max(abs(loadings_long$Loading_thresholded), na.rm = TRUE)
+  
+  # Plot
+  p <- ggplot(loadings_long, aes(x = Item, 
+                                 y = Loading_thresholded,
+                                 fill = Loading_thresholded)) +
+    geom_bar(stat = "identity", position = "identity", width = 0.7,
+             colour = "grey35", linewidth = 0.2) +  # <-- outline added
+    geom_hline(yintercept = c(0.3, -0.3), linetype = "dashed", colour = "grey60", linewidth = 0.6) +
+    facet_wrap(~ Factor, scales = "free_x", nrow = 1) +
+    coord_flip() +
+    scale_fill_gradient2(
+      low = "blue",
+      mid = "white",
+      high = "red",
+      midpoint = 0,
+      limits = c(-rng, rng),
+      name = "Loading"
+    ) +
+    labs(title = title, x = "Mind-Wandering Item", y = "Loading (Pattern Coefficient)") +
+    theme_minimal() +
+    theme(
+      axis.text.y = element_text(size = 9),
+      axis.title.x = element_text(size = 11, face = "bold"),
+      axis.title.y = element_text(size = 11, face = "bold"),
+      strip.text = element_text(size = 12, face = "bold"),
+      plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+      legend.position = "bottom",
+      panel.grid.major.y = element_blank()
+    )
+  
+  print(p)
+  
+  # Optionally save
+  ggsave("~/Git/BodyWanderingCCA/figures/Indiv_Figures/ControlAnalyses/EFA/efa_loadings_barplot.png",
+         plot = p, width = 10, height = 6, dpi = 300)
+}
+
+# call
+plot_loadings_bar(fa.restResults, threshold = 0)
 
 ```
 
@@ -260,132 +315,102 @@ cat("Factor 2 loading correlation:", round(cor_factor2, 3), "\n")
 ```
 
 
-# Correlate factors/communities/averages with MAIA
+# Correlate factors-connectivity results with CCA variate
 ```{r}
-# factor scores EFA
-factor_scores<-factor.scores(rest_probes, fa.restResults, method = "Bartlett")
-factor_scores<-as.data.frame(factor_scores$scores)
 
-subids <- read_tsv("/home/leah/Git/BodyWanderingCCA/data/mindwand_movieratings.tsv")
-subids[subids == "n/a"] <- NA 
-subids <- subids[complete.cases(subids$RS_MW_1), 'participant_id']
+# factor connectivity univariate correlations result with CCA brain loadings
+factor1connect <- read_csv('~/Git/BodyWanderingCCA/data/FactorConnectivity/Factor1connect_massunivariateresults.csv')$t_score
+factor2connect <- read_csv('~/Git/BodyWanderingCCA/data/FactorConnectivity/Factor2connect_massunivariateresults.csv')$t_score
+cca_brainloadings <- readMat('~/Git/BodyWanderingCCA/figures/Indiv_Figures/CCA/CCAloadings/Connectome/brainloadings.mat')$weightX
 
-#factor_scores$participant_id <- subids$participant_id
-#write.csv(factor_scores, "~/Git/BodyWanderingCCA/data/2factEFA_scores.csv", row.names = FALSE)
-
-# mean score of MAIA
-maia_score <- read_tsv('/mnt/raid0/scratch/BIDS/derivatives/summaries/survey/summary_scores/grand/grand_surveyscores_summary.tsv')[ ,c('participant_id', 'maia_full_mean')] #'maia_notice', 'maia_ndistract', 'maia_nworry', 'maia_attnReg', 'maia_EmoAware', 'maia_SelfRef', 'maia_listen', 'maia_trust', 
-maia_score[, 2:ncol(maia_score)] <- apply(maia_score[, 2:ncol(maia_score)], 2, as.numeric)
-
-# match and merge the relevant variables of interest
-match_merge <- function(data1, data2, subIDs1, subIDs2, labels) {
-  reorder_idx <- match(subIDs1, subIDs2)
-  data2 <- data2[reorder_idx, ]
-
-  # merge data across dataframes
-  merged <- cbind(data1, data2)
-  colnames(merged) <- labels
-  return(merged)
-}
-
-# merge factor scores with maia mean score
-maia_corr <- match_merge(maia_score[ ,2:ncol(maia_score)], factor_scores, maia_score$participant_id, as.character(subids[[1]]), c(colnames(maia_score[ ,2:ncol(maia_score)]), 'Factor1', 'Factor2'))
+cordata <- cbind(factor1connect, factor2connect, cca_brainloadings)
+colnames(cordata) <- c('Factor1.UniVar.Connect.Corr', 'Factor2.UniVar.Connect.Corr', 'CCA.brain.loadings')
+cormatrix_full(cordata, 'factor & cca loading correlations', 'Spearman correlations')
+psych::corr.test(cordata, method = "spearman", adjust = "fdr")$p
 
 
-# body/cog averages
-BodyAv <- rowMeans(rest_probes[ ,c("Body", "Breath", "Heart", "Movement", "Bladder", "Skin", "Stomach")])  
-CognitiveAv <- rowMeans(rest_probes[ ,c("Future", "Past", "Self", "Other")]) 
-MWsummaries <- cbind(BodyAv, CognitiveAv)
-
-# merge averages with everything
-maia_corr <- match_merge(maia_corr, MWsummaries, maia_score$participant_id, as.character(subids[[1]]), c(colnames(maia_corr), 'BodyAvergae', 'CogAverage'))
+# permuted p-values via 10000 permuations
+perm_rho_fact1 <- replicate(10000, cor(sample(cordata[ ,'CCA.brain.loadings']),
+                                 cordata[ ,'Factor1.UniVar.Connect.Corr'],
+                                 method = "spearman"))
+emp_p_fact1 <- mean(abs(perm_rho_fact1) >= abs(cor(cordata[ ,'CCA.brain.loadings'], cordata[ ,'Factor1.UniVar.Connect.Corr'],method = "spearman")))
 
 
+perm_rho_fact2 <- replicate(10000, cor(sample(cordata[ ,'CCA.brain.loadings']),
+                                 cordata[ ,'Factor2.UniVar.Connect.Corr'],
+                                 method = "spearman"))
+emp_p_fact2 <- mean(abs(perm_rho_fact2) >= abs(cor(cordata[ ,'CCA.brain.loadings'], cordata[ ,'Factor2.UniVar.Connect.Corr'],method = "spearman")))
 
-# # average items in network communities
-# subject_community_scores <- data.frame(Subject = seq_len(nrow(rest_probes)))
-# community_membership <- c(1, 1, 2, 2, 2, 3, 2, 4, 1, 1, 2, 4, 1, 3, 5, 1, 3, 5, 3, 3, 3)
-# names(community_membership) <- colnames(rest_probes)
-# # Loop through each community and compute subject-level scores
-# for (comm in unique(community_membership)) {
-#   items_in_community <- names(community_membership[community_membership == comm])
-#   print(items_in_community)
-#   subject_community_scores[[paste0("Community_", comm)]] <- rowMeans(rest_probes[, items_in_community, drop=FALSE], na.rm=TRUE)
-# }
-# # colnames(subject_community_scores) <- c("Subject", "BreathTemporalityImageryFocus", "PositivePersonhoodRuminate", "NegativeInternal", "VividDistance", "BodyMovement")
-# 
-# # merge communities with everything
-# maia_corr <- match_merge(maia_corr, subject_community_scores[ ,2:6], maia_score$participant_id, as.character(subids[[1]]), c(colnames(maia_corr), colnames(subject_community_scores[ ,2:6])))
+# plot scatter
+library(ggplot2)
+library(psych)
+library(patchwork)
 
-# CCA variates
-BW_item_variate <- readMat("~/Git/body_wandering/figures/CCA/Abend216/BWitems/CCAvariate.mat")$P
-colnames(BW_item_variate) <- c('CCA.brain.variate', 'CCA.beh.variate')
-BWCCAs_subIDs <- readMat("~/Git/body_wandering/data/CCA_input/subIDs_BWCCAs.mat")$subIDs
-
-maia_corr <- match_merge(maia_corr, BW_item_variate, as.numeric(sub("sub-", "", maia_score$participant_id)), BWCCAs_subIDs, c(colnames(maia_corr), colnames(BW_item_variate)))
-
-
-cormatrix_full <- function(cordata, title, subtitle) {
-  pval_fdr <- psych::corr.test(cordata, method = "spearman", adjust = "fdr")$p
-  rval_fdr <- psych::corr.test(cordata, method = "spearman", adjust = "fdr")$r
-  cp1 <- ggcorrplot(rval_fdr, p.mat = pval_fdr, hc.order=FALSE,
-             type='full', insig='blank', method = "square", sig.level = 0.05, #circle?
-             outline.col = "black",
-            # lab = TRUE,
-             ggtheme = ggplot2::theme_minimal,
-             tl.cex = 8,
-             colors = c("#6D9EC1", "white", "#EA5F21FF")) +
-    geom_hline(yintercept = ncol(rval_fdr)+.5, linetype = 3, size = 1) +
-    geom_vline(xintercept = .5, linetype = 3, size = 1) +
-    geom_abline(intercept = 0, slope = 1, linetype = 3, size = 1) +
-    ggtitle(title) +
-    labs(subtitle = subtitle)
+make_plot <- function(xvar, label) {
+  cor_res <- corr.test(cordata[, xvar], cordata[, 'CCA.brain.loadings'], method = "spearman")
+  rho <- round(cor_res$r, 3)
+  r2 <- round(rho^2, 3)
+  #p <- ifelse(cor_res$p < 0.001, "< 0.001", signif(cor_res$p, 3))
   
-  cp1 
+  ggplot(cordata, aes_string(xvar, "CCA.brain.loadings")) +
+    geom_point(colour = "slateblue4", alpha = 0.15, size = 0.8) +
+    geom_smooth(method = "lm", se = FALSE, linetype = "dashed", colour = "grey40", linewidth = 0.6) +
+    theme_classic() +
+    labs(
+      x = paste(label, "connectivity coefficients"),
+      y = "CCA brain loadings",
+      title = paste0("r\u209B = ", rho, " (r\u209B² = ", r2, ")")#, p ", p)
+    )
 }
 
-cormatrix_full(maia_corr, 'correlations with MAIA', 'Spearman correlations')
-psych::corr.test(maia_corr, method = "spearman", adjust = "fdr")$r
+p1 <- make_plot("Factor1.UniVar.Connect.Corr", "Factor 1")
+p2 <- make_plot("Factor2.UniVar.Connect.Corr", "Factor 2")
+
+(p1 + p2)
+
+ggsave("~/Git/BodyWanderingCCA/figures/revisionplots_all/Corr_Factorconnect_CCAconnectloadings.png",
+       p1 + p2, width = 10, height = 4, dpi = 300)
+
 
 ```
 
 ```{r}
+# hex plot
+library(ggplot2)
+library(psych)
+# install.packages("hexbin")   # run once if you don't have it
 
-cormatrix_selected <- function(cordata, xlabel, ylabel, xnum, ynum, savepath) {
-  # Correlation plots
-  cormatrix <- t(psych::corr.test(cordata, method = "spearman", adjust = "fdr")$r[1:xnum, (xnum+1):(xnum+ynum)]) #[(xnum+1):(xnum+ynum), 1:xnum]
-  cor_pvals <- t(psych::corr.test(cordata, method = "spearman", adjust = "fdr")$p[1:xnum, (xnum+1):(xnum+ynum)])
-  png(filename = savepath, res = 300, height = ((ynum*2)+2), width = 40, units = "cm") # width for factors
-  # Plot the correlation matrix with significance markers
-  corrplot::corrplot(cormatrix,
-                     method = "color",
-                     addCoef.col = 'black',
-                     cl.pos = 'n',
-                     col.lim = c(min(cormatrix), max(cormatrix)),
-                     tl.col = "black",
-                     col = colorRampPalette(c("blue", "white", "red"))(100),
-                     p.mat = cor_pvals,
-                     sig.level = 0.05,
-                     insig="blank",
-                     mar = c(0, 0, 1.75, 0)
-                     )$corrPos -> p1
-  #text(p1$x, p1$y, round(p1$corr, 2))
+make_hex_plot <- function(xvar, label) {
+  cor_res <- corr.test(cordata[, xvar], cordata[, 'CCA.brain.loadings'], method = "spearman")
+  rho <- round(cor_res$r, 3)
+  r2  <- round(rho^2, 3)
   
-  # Draw a rectangle around the entire correlation matrix
-  rect(0.5, 0.5, ncol(cormatrix) + 0.5, nrow(cormatrix) + 0.5, border = "black", lwd = 2)
-  dev.off()
+  ggplot(cordata, aes_string(xvar, "CCA.brain.loadings")) +
+    geom_hex(bins = 40) +  # adjust bins if you want coarser/finer hexes
+    geom_smooth(method = "lm", se = FALSE, linetype = "dashed",
+                colour = "grey20", linewidth = 0.6) +
+    scale_fill_gradient(name = "Count", low = "#ebf3f7", high = "slateblue4") +
+    theme_classic() +
+    labs(
+      x = paste(label, "connectivity coefficients"),
+      y = "CCA brain loadings",
+      title = paste0("r\u209B = ", rho, " (r\u209B² = ", r2, ")")
+    )
 }
 
-corrdata <- maia_corr[ ,c("BodyAvergae", "CogAverage", "Factor1", "Factor2", "CCA.brain.variate", "CCA.beh.variate")] #"BreathTemporalityImageryFocus", "PositivePersonhoodRuminate", "NegativeInternal", "VividDistance", "BodyMovement",
-colnames(corrdata) <- c("Body Avergae", "Cognitive Average", "EFA Factor1", "EFA Factor2", "CCA BrainVariate", "CCA MindwandVariate") #, "Network BreathTemporalityImageryFocus", "Network PositivePersonhoodRuminate", "Network NegativeInternal", "Network VividDistance", "Network BodyMovement"
-cormatrix_selected(corrdata, "Body-Wandering Averages", "Latent Variables", 2, 4, "~/Git/BodyWanderingCCA/figures/Indiv_Figures/ControlAnalyses/MWaverage_corr/corr_BWaverages_LatentVars2.png")
+p1_hex <- make_hex_plot("Factor1.UniVar.Connect.Corr", "Factor 1")
+p2_hex <- make_hex_plot("Factor2.UniVar.Connect.Corr", "Factor 2")
 
-cormatrix_full(corrdata, 'correlations latent variables', 'Spearman correlations')
+(p1_hex + p2_hex)
+
+ggsave("~/Git/BodyWanderingCCA/figures/revisionplots_all/Corr_Factorconnect_CCAconnectloadings_hexplot5.png",
+       p1_hex + p2_hex, width = 10, height = 4, dpi = 300)
+
 
 ```
 
 
-
+# Factor scores with mental health & arousal metrics
 ```{r}
 
 # factor scores EFA
@@ -416,7 +441,6 @@ for (col in col2log) {
   corrdata[ ,col] <- log(corrdata[ ,col] + 1)
 }
 corrdata[,3:ncol(corrdata)] <- corrdata[,3:ncol(corrdata)] %>% mutate_if(is.numeric, ~ifelse(abs(. - mean(., na.rm = TRUE)) > 3 * sd(., na.rm = TRUE), NA, .)) # remove outliers
-
 
 
 # make bar also
@@ -477,6 +501,7 @@ ggsave("~/Git/BodyWanderingCCA/figures/Indiv_Figures/ControlAnalyses/EFA/EFAfact
 ```
 
 
+# CCA variates with mental health & arousal metrics
 ```{r}
 library(R.matlab)
 
@@ -508,7 +533,6 @@ match_merge <- function(data1, data2, subIDs1, subIDs2, labels) {
 }
 
 CCAvar_corr <- match_merge(BW_item_variate, alldata[ 2:ncol(alldata)], BWCCAs_subIDs, as.numeric(sub("sub-", "", alldata$participant_id)), c(colnames(BW_item_variate), colnames(alldata[ 2:ncol(alldata)])))
-
 
 
 # make bar also
@@ -566,7 +590,4 @@ print(plot)
 # Save the plot with specified dimensions
 ggsave("~/Git/BodyWanderingCCA/figures/Indiv_Figures/ControlAnalyses/MWaverage_corr/CCAvariate_correlations_all.png", plot, width = 11, height = 8, dpi = 300, bg = 'white')
 
-
 ```
-
-

@@ -1,0 +1,561 @@
+---
+title: "ItemAnalyses_MHPhysio"
+output: html_document
+date: "2025-10-20"
+---
+
+```{r setup, include=FALSE}
+# clean slate to be sure
+rm(list = ls())
+
+# check for pacman package and install if not found
+if (!require("pacman")) install.packages("pacman")
+  pacman::p_load(readr,psych,polycor,corrplot,dplyr, tidyverse, here, circlize, BiocManager, ComplexHeatmap, gplots, gridExtra, gt, kableExtra, ggcorrplot, shape, patchwork, tidyr, ggwordcloud)
+
+rest_probes <- read.csv("~/Git/BodyWanderingCCA/data/rest_probes.csv", row.names = 1)
+
+alldata <- read.csv("~/Git/body_wandering/data/BodyWanderingData.csv", row.names = 1)
+
+# change name as requested by reviewer
+colnames(rest_probes)[colnames(rest_probes) == "Ruminate"] <- "Repetitive"
+colnames(alldata)[colnames(alldata) == "Ruminate"] <- "Repetitive"
+
+```
+
+# Correlation matrix & scatterplot functions
+```{r}
+cormatrix_full <- function(cordata, title, subtitle) {
+  pval_fdr <- psych::corr.test(cordata, method = "spearman", adjust = "fdr")$p
+  rval_fdr <- psych::corr.test(cordata, method = "spearman", adjust = "fdr")$r
+  cp1 <- ggcorrplot(rval_fdr, p.mat = pval_fdr, hc.order=FALSE,
+             type='full', insig='blank', method = "square", sig.level = 0.05, #circle?
+             outline.col = "black",
+            # lab = TRUE,
+             ggtheme = ggplot2::theme_minimal,
+             tl.cex = 8,
+             colors = c("#6D9EC1", "white", "#EA5F21FF")) +
+    geom_hline(yintercept = ncol(rval_fdr)+.5, linetype = 3, size = 1) +
+    geom_vline(xintercept = .5, linetype = 3, size = 1) +
+    geom_abline(intercept = 0, slope = 1, linetype = 3, size = 1) +
+    ggtitle(title) +
+    labs(subtitle = subtitle)
+  
+  cp1 
+}
+
+
+cormatrix_selected <- function(cordata, xlabel, ylabel, xnum, ynum, savepath) {
+  # Correlation plots
+  cormatrix <- t(psych::corr.test(cordata, method = "spearman", adjust = "fdr")$r[1:xnum, (xnum+1):(xnum+ynum)]) #[(xnum+1):(xnum+ynum), 1:xnum]
+  cor_pvals <- t(psych::corr.test(cordata, method = "spearman", adjust = "fdr")$p[1:xnum, (xnum+1):(xnum+ynum)])
+  png(filename = savepath, res = 300, height = ((ynum*2)+2), width = 40, units = "cm") # width for factors
+  # Plot the correlation matrix with significance markers
+  corrplot::corrplot(cormatrix,
+                     method = "color",
+                     addCoef.col = 'black',
+                     cl.pos = 'n',
+                     col.lim = c(min(cormatrix), max(cormatrix)),
+                     tl.col = "black",
+                     col = colorRampPalette(c("blue", "white", "red"))(100),
+                     p.mat = cor_pvals,
+                     sig.level = 0.05,
+                     insig="blank",
+                     mar = c(0, 0, 1.75, 0)
+                     )$corrPos -> p1
+  #text(p1$x, p1$y, round(p1$corr, 2))
+  
+  # Draw a rectangle around the entire correlation matrix
+  rect(0.5, 0.5, ncol(cormatrix) + 0.5, nrow(cormatrix) + 0.5, border = "black", lwd = 2)
+  dev.off()
+}
+
+
+scatterplot_gg <- function(cdat, yvar, xvar, colour) {
+  
+  corrdata <- data.frame(apply(cdat, 2, rank))
+  pval_fdr <- psych::corr.test(cdat, method = "spearman", adjust = "fdr")$p
+  rval_fdr <- psych::corr.test(cdat, method = "spearman", adjust = "fdr")$r
+
+    if (pval_fdr[xvar,yvar] < 0.001) {
+      pval = '<.001'}
+    else {
+      pval = round(pval_fdr[xvar,yvar], 3)
+    }
+  
+  ggplot(cdat, aes(y= !! sym(yvar), x= !! sym(xvar))) + 
+    geom_point(color=colour, alpha=0.75)+
+    geom_smooth(method=lm , color="#909086", fill="#69b3a2", se=TRUE) +
+    theme_classic() +
+    ggtitle(paste("rs =", round(rval_fdr[xvar,yvar], 3), ", pFDR =", pval))+ 
+    theme(plot.title = element_text(size = 7, face = "bold"), axis.title = element_text(size = 9), axis.text = element_text(size = 9))
+}
+
+
+corbarplot <- function(cormatrix, var2orderby, var1, var2, colour1, colour2) {
+  cormatrix <- as.data.frame(cormatrix)
+  cormatrix$Items <- rownames(cormatrix)
+  
+  # Convert to long format
+  cormatrix<- cormatrix %>%
+    pivot_longer(cols = -Items, names_to = "Correlation", values_to = "Value") %>%
+    mutate(Vars = factor(Items, levels = unique(Items))) # Ensure the order is as desired
+  
+  # Create a sorting frame based on positive correlations
+  sort_order <- cormatrix %>%
+    dplyr::filter(Correlation == var2orderby) %>%
+    dplyr::arrange(desc(Value)) %>%
+    dplyr::mutate(order = row_number()) %>%
+    dplyr::select(Items, order) # Adjusted to ensure select is correctly applied
+  
+  # Merge this order back into the original dataset
+  cormatrix <- cormatrix %>%
+    left_join(sort_order, by = "Items") %>%
+    mutate(Items = factor(Items, levels = sort_order$Items)) # Reorder based on positive correlation
+  
+  # Plot the data
+  plot <- ggplot(cormatrix, aes(x = Items, y = Value, fill = Correlation)) +
+    geom_col(position = position_dodge2(padding = 0.2), width = 1) +
+    #coord_flip() +
+    theme_minimal() +
+    scale_fill_manual(values = setNames(c(colour1, colour2), c(var1, var2))) +
+    labs(y = "Spearman Coefficient", title = "Mind-Wandering Correlations") +
+    theme(
+      axis.title.y = element_text(size = 16),
+      axis.title.x = element_text(size = 16),
+      axis.text.y = element_text(size = 16, margin = margin(t = 0, r = 0, b = 0, l = 10, unit = "pt")),
+      axis.text.x = element_text(size = 16, margin = margin(t = 0, r = 0, b = 10, l = 0, unit = "pt"),
+                                 angle = 90, vjust = 0.5, hjust = 1),
+      legend.text = element_text(size = 16),
+      legend.title = element_text(size = 15),
+      panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank(),
+      panel.background = element_blank(),
+      axis.line = element_line(colour = "black")
+    )
+  
+  print(plot)
+}
+
+# Correlation plots
+#cor_pvals <- t(psych::corr.test(corrdata, method = "spearman", adjust = "fdr")$p[1:2, 3:16])
+
+
+wordcloud_plot <- function(cormatrix, corrvar, colour1, colour2, label) {
+target_metric <- corrvar
+
+wc_df <- as.data.frame(cormatrix) %>%
+  rownames_to_column("Items") %>%
+  pivot_longer(-Items, names_to = "Correlation", values_to = "Value") %>%
+  dplyr::filter(Correlation == target_metric, !is.na(Value)) %>%
+  mutate(mag = abs(Value))
+
+set.seed(123)
+ggplot(wc_df, aes(label = Items, size = mag, colour = Value)) +
+  geom_text_wordcloud_area(show.legend = TRUE) +
+  scale_size_area(max_size = 18, guide = "none") +
+  scale_colour_gradient2(low = colour1, mid = "grey", high = colour2, midpoint = 0, name = label, breaks = scales::pretty_breaks(3), labels = scales::label_number(accuracy = 0.01), guide = guide_colorbar(title.position = "top")) +
+  theme_minimal() +
+    theme(
+      #plot.title = element_text(hjust = 0.5, vjust = 1, margin = margin(b = 5)),
+      legend.position = "bottom",
+      #legend.title = element_text(hjust = 0.5)  # centres title above colourbar
+    )#+
+  #labs(title = paste("Correlations with", target_metric))
+}
+
+```
+
+
+# Create dataframe of Psych & Physio metrics with Mind-Wandering items
+```{r}
+# Psych & Physio together (to correct multiple comparisons)
+cols = c("asrs.combined.sum", "mdi", "Heart.Rate", "HRV.RMSSD")# "High.Freq.Power", "LF.HF.Ratio", "Resp.Rate", "Resp.Duration.Mean", "Resp.Duration.SD", "Resp.Depth.Mean", "Resp.Depth.SD", "Gastric.Peak.Freq", "Gastric.Max.Power", "Gastric.Prop.Power") #
+corrdata <- cbind(rest_probes, alldata[ ,cols]) 
+col2log <- c("mdi", "HRV.RMSSD") #"LF.HF.Ratio", "Resp.Duration.SD", "Resp.Depth.SD", "Gastric.Max.Power")
+for (col in col2log) {
+  corrdata[ ,col] <- log(corrdata[ ,col] + 1)
+}
+corrdata[,3:ncol(corrdata)] <- corrdata[,3:ncol(corrdata)] %>% mutate_if(is.numeric, ~ifelse(abs(. - mean(., na.rm = TRUE)) > 3 * sd(., na.rm = TRUE), NA, .)) # remove outliers
+colnames(corrdata) <- c(colnames(rest_probes), "ADHD (ASRS)", "Depression (MDI)", "Heart Rate", "HRV RMSSD")#, "High Freq Power", "LF/HF Ratio", "Resp Rate", "Resp Duration Mean", "Resp Duration SD", "Resp Depth Mean", "Resp Depth SD", "Gastric Peak Freq", "Gastric Max Power", "Gastric Prop Power") 
+cormatrix_full(corrdata, "Body-Wandering Items", "Item Correlations")
+#cormatrix_selected(corrdata, "Body-Wandering Items", "Psych Physio Metrics", 22, 14, here::here("figures", "corr_BWitems_PsychPhysio.png"))
+
+```
+
+
+# sig item correlations with mental health/physio
+```{r}
+# Function for printing sig item correlations
+sigcorr <- function(ct, targets, items = 1:22, alpha = .05) {
+  # ensure all pval matrix is FDR-corrected
+  ct$p[lower.tri(ct$p)] <- t(ct$p)[lower.tri(ct$p)]  # copy adjusted upper into lower #isSymmetric(ct$p)
+  diag(ct$p) <- NA
+  
+  r <- ct$r[items, targets]
+  p <- ct$p[items, targets]
+
+  ix <- which(p < alpha, arr.ind = TRUE)
+  if (!nrow(ix)) return(NULL)
+
+  data.frame(
+    Var    = rownames(r)[ix[, 1]],
+    Target = colnames(r)[ix[, 2]],
+    report = paste0(
+      "r\u209B = ", round(r[ix], 3),
+      ifelse(p[ix] < .001,
+             ", pFDR < .001",
+             paste0(", pFDR = ", sub("^0", "", sprintf("%.3f", p[ix]))))
+    ),
+    row.names = NULL
+  )
+}
+
+# print sig correlations
+cormatrix_all <- psych::corr.test(corrdata, method = "spearman", adjust = "fdr")
+sigcorr(cormatrix_all, 23:24)
+sigcorr(cormatrix_all, 25:26)
+
+```
+
+
+# Save APA word table of stats - all items
+```{r}
+library(psych)
+library(flextable)
+library(officer)
+
+
+# Psych & Physio together (to correct multiple comparisons)
+cols = c("asrs.combined.sum", "mdi", "Heart.Rate", "HRV.RMSSD")
+corrdata <- cbind(rest_probes, alldata[ ,cols]) 
+col2log <- c("mdi", "HRV.RMSSD") 
+for (col in col2log) {
+  corrdata[ ,col] <- log(corrdata[ ,col] + 1)
+}
+corrdata[,3:ncol(corrdata)] <- corrdata[,3:ncol(corrdata)] %>% mutate_if(is.numeric, ~ifelse(abs(. - mean(., na.rm = TRUE)) > 3 * sd(., na.rm = TRUE), NA, .)) # remove outliers
+colnames(corrdata) <- c(colnames(rest_probes), "ADHD (ASRS)", "Depression (MDI)", "Heart Rate", "HRV RMSSD")
+
+ct <- psych::corr.test(corrdata, method = "spearman", adjust = "fdr")
+
+library(psych)
+library(officer)
+
+save_corr_table_docx <- function(ct, rows = 1:22, cols = 23:26, path) {
+  r <- ct$r[rows, cols]
+  p <- ct$p[rows, cols]
+
+  make_cell <- function(r_ij, p_ij) {
+    if (is.na(r_ij) || is.na(p_ij)) return("")
+    if (p_ij < .001) {
+      sprintf("r\u209B = %.3f, pFDR < .001", r_ij)
+    } else {
+      p_str <- sub("^0", "", sprintf("%.3f", p_ij))  # .XXX
+      sprintf("r\u209B = %.3f, pFDR = %s", r_ij, p_str)
+    }
+  }
+
+  cell <- matrix(
+    mapply(make_cell, as.vector(r), as.vector(p)),
+    nrow = nrow(r), ncol = ncol(r),
+    byrow = FALSE,
+    dimnames = dimnames(r)
+  )
+
+  df <- as.data.frame(cell, stringsAsFactors = FALSE, check.names = FALSE)
+  df <- cbind(Variable = rownames(df), df)  # row labels + 4 cols
+
+  doc <- read_docx()
+  doc <- body_add_table(doc, df)  # plain Word table; you can restyle in Word
+  print(doc, target = path)
+}
+
+# use it
+save_corr_table_docx(
+  ct,
+  rows = 1:22,
+  cols = 23:26,
+  path = here::here("figures", "MDESitem_PsychoPhysiocorr_APA.docx")
+)
+
+```
+
+# Bar plot of all item correlations with bootstrapped CIs
+```{r}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(boot)
+
+corbarplot_bootCIs <- function(cormatrix, data, var2orderby, var1, var2,
+                               colour1, colour2, R = 10000) {
+  # Bootstrap CIs
+  cm <- as.data.frame(cormatrix)
+  items <- rownames(cm)
+
+  pairs <- expand.grid(
+    Correlation = c(var1, var2),
+    Items       = items,
+    stringsAsFactors = FALSE
+  )
+
+  boot_spear <- function(dat, ind, x, y) {
+    d <- dat[ind, ]
+    cor(d[[x]], d[[y]], method = "spearman",
+        use = "pairwise.complete.obs")
+  }
+
+  ci_list <- lapply(seq_len(nrow(pairs)), function(i) {
+    row <- pairs[i, ]
+    b <- boot::boot(
+      data,
+      statistic = function(d, ind)
+        boot_spear(d, ind, row$Correlation, row$Items),
+      R = R
+    )
+    bc <- boot::boot.ci(b, type = "perc")
+    c(ci_low = bc$percent[4], ci_high = bc$percent[5])
+  })
+
+  ci_df <- cbind(pairs, do.call(rbind, ci_list)) %>% as.data.frame()
+
+  # original reshape + ordering
+  cormatrix <- cm
+  cormatrix$Items <- rownames(cormatrix)
+
+  cormatrix_long <- cormatrix %>%
+    pivot_longer(cols = -Items,
+                 names_to = "Correlation",
+                 values_to = "Value") %>%
+    mutate(Vars = factor(Items, levels = unique(Items)))
+
+  sort_order <- cormatrix_long %>%
+    dplyr::filter(Correlation == var2orderby) %>%
+    dplyr::arrange(desc(Value)) %>%
+    dplyr::mutate(order = row_number()) %>%
+    dplyr::select(Items, order)
+
+  plot_df <- cormatrix_long %>%
+    left_join(sort_order, by = "Items") %>%
+    left_join(ci_df, by = c("Items", "Correlation"))
+
+  # Plot – use reorder(Items, -order) to force ordering
+  dodge_width <- 0.8
+
+  ggplot(plot_df,
+         aes(x = reorder(Items, -order),
+             y = Value,
+             fill = Correlation)) +
+    geom_col(position = position_dodge(dodge_width), width = 0.7) +
+    geom_errorbar(aes(ymin = ci_low, ymax = ci_high),
+                  position = position_dodge(dodge_width),
+                  width = 0, colour = "grey60") +
+    theme_minimal() +
+    scale_fill_manual(values = setNames(c(colour1, colour2),
+                                        c(var1, var2))) +
+    labs(y = "Spearman Coefficient",
+         x = "Items") +
+         #title = "Mind-Wandering Correlations") +
+    theme(
+      axis.title.y = element_text(size = 16),
+      axis.title.x = element_text(size = 16),
+      axis.text.y  = element_text(size = 16,
+                                  margin = margin(t = 0, r = 0, b = 0,
+                                                  l = 10, unit = "pt")),
+      axis.text.x  = element_text(size = 16,
+                                  margin = margin(t = 0, r = 0, b = 10,
+                                                  l = 0, unit = "pt"),
+                                  angle = 90, vjust = 0.5, hjust = 1),
+    
+      legend.position = c(0.98, 0.02),      # near bottom-right inside panel
+      legend.justification = c(1, 0),       # anchor bottom-right of legend here
+      legend.direction = "vertical",
+      legend.background = element_rect(fill = scales::alpha("white", 0.8), colour = NA),
+      legend.text  = element_text(size = 15),
+      legend.title = element_text(size = 16),
+    
+      panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank(),
+      panel.background = element_blank(),
+      axis.line = element_line(colour = "black")
+    )
+
+}
+
+
+# Mental Health - Item correlation BarPlot
+cormatrix <- t(psych::corr.test(corrdata, method = "spearman", adjust = "fdr")$r[23:24, 1:22])
+p <- corbarplot_bootCIs(
+  cormatrix   = cormatrix,
+  data        = corrdata,
+  var2orderby = "Depression (MDI)",
+  var1        = "Depression (MDI)",
+  var2        = "ADHD (ASRS)",
+  colour1     = "#e7e2dc", 
+  colour2     = "#b6a997" 
+)
+
+# Save the plot with specified dimensions
+ggsave(here::here("figures", "BWitems_Psychcorrelations_Depress_BootstrappedCIs.png"), plot=p, width = 7.5, height = 6, dpi = 300, bg = 'white')
+
+
+# Physiological Arousal - Item correlation BarPlot
+cormatrix <- t(psych::corr.test(corrdata, method = "spearman", adjust = "fdr")$r[25:26, 1:22])
+p <- corbarplot_bootCIs(
+  cormatrix   = cormatrix,
+  data        = corrdata,
+  var2orderby = "HRV RMSSD",
+  var1        = "Heart Rate",
+  var2        = "HRV RMSSD",
+  colour1     = "#636363", #"#fc4f29", #a8d2fb",
+  colour2     = "#c6c6c6", #"#feb24c" #42ab5d", #8688bc"
+)
+
+# Save the plot with specified dimensions
+ggsave(here::here("figures", "BWitems_Physiocorrelations_HRV_BootstrappedCIs.png"), plot=p, width = 7.5, height = 6, dpi = 300, bg = 'white')
+
+```
+
+# wordclouds of item correlations
+```{r}
+cormatrix <- t(psych::corr.test(corrdata, method = "spearman", adjust = "fdr")$r[23:24, 1:22])
+p <- wordcloud_plot(cormatrix, "Depression (MDI)", "#ff70a6", "#70d6ff", 'Depress rs') 
+ggsave(here::here("figures", "wordcloud_BWitems_depresscorr.png"), plot=p, width = 2.5, height = 3, dpi = 300, bg = 'white')
+
+p <- wordcloud_plot(cormatrix, "ADHD (ASRS)", "#ff70a6", "#70d6ff", 'ADHD rs') 
+ggsave(here::here("figures", "wordcloud_BWitems_ADHDcorr.png"), plot=p, width = 2.5, height = 3, dpi = 300, bg = 'white')
+
+cormatrix <- t(psych::corr.test(corrdata, method = "spearman", adjust = "fdr")$r[25:26, 1:22])  
+p <- wordcloud_plot(cormatrix, "HRV RMSSD", "#ff70a6", "#70d6ff", 'HRV RMSSD rs') 
+ggsave(here::here("figures", "wordcloud_BWitems_HRVcorr.png"), plot=p, width = 2.5, height = 3, dpi = 300, bg = 'white')
+
+p <- wordcloud_plot(cormatrix, "Heart Rate", "#70d6ff","#ff70a6", 'Heart Rate rs') 
+ggsave(here::here("figures", "wordcloud_BWitems_HRcorr.png"), plot=p, width = 2.5, height = 3, dpi = 300, bg = 'white')
+
+```
+
+
+
+# resp & gastric metrics for supplement
+```{r}
+# Psych & Physio together (to correct multiple comparisons)
+cols = c("asrs.combined.sum", "mdi", "Resp.Rate", "Resp.Depth.Mean", "Gastric.Peak.Freq", "Gastric.Max.Power") #
+corrdata <- cbind(rest_probes, alldata[ ,cols]) 
+col2log <- c("mdi", "Gastric.Max.Power")
+for (col in col2log) {
+  corrdata[ ,col] <- log(corrdata[ ,col] + 1)
+}
+corrdata[,3:ncol(corrdata)] <- corrdata[,3:ncol(corrdata)] %>% mutate_if(is.numeric, ~ifelse(abs(. - mean(., na.rm = TRUE)) > 3 * sd(., na.rm = TRUE), NA, .)) # remove outliers
+colnames(corrdata) <- c(colnames(rest_probes), "ADHD (ASRS)", "Depression (MDI)", "Resp Rate", "Resp Depth Mean", "Gastric Peak Freq", "Gastric Max Power") 
+#cormatrix_full(corrdata, "Body-Wandering Items", "Item Correlations")
+#cormatrix_selected(corrdata, "Body-Wandering Items", "Psych Physio Metrics", 22, 14, here::here("figures", "corr_BWitems_PsychPhysio.png"))
+
+
+# RESP Physio - Item correlation BarPlot
+cormatrix <- t(psych::corr.test(corrdata, method = "spearman", adjust = "fdr")$r[25:26, 1:22])
+p <- corbarplot_bootCIs(
+  cormatrix   = cormatrix,
+  data        = corrdata,
+  var2orderby = "Resp Depth Mean",
+  var1        = "Resp Rate",
+  var2        = "Resp Depth Mean",
+  colour1     = "#636363",
+  colour2     = "#c6c6c6" 
+)
+
+# Save the plot with specified dimensions
+ggsave(here::here("figures", "BWitems_PhysioRESPcorrelations_BootstrappedCIs.png"), plot=p, width = 7.5, height = 6, dpi = 300, bg = 'white')
+
+
+# Gastric Physio - Item correlation BarPlot
+cormatrix <- t(psych::corr.test(corrdata, method = "spearman", adjust = "fdr")$r[27:28, 1:22])
+p <- corbarplot_bootCIs(
+  cormatrix   = cormatrix,
+  data        = corrdata,
+  var2orderby = "Gastric Max Power",
+  var1        = "Gastric Peak Freq",
+  var2        = "Gastric Max Power",
+  colour1     = "#636363", 
+  colour2     = "#c6c6c6", 
+)
+
+# Save the plot with specified dimensions
+ggsave(here::here("figures", "BWitems_PhysioGASTRICcorrelations_BootstrappedCIs.png"), plot=p, width = 7.5, height = 6, dpi = 300, bg = 'white')
+
+p <- wordcloud_plot(cormatrix, "Resp Depth Mean", "#70d6ff", "#ff70a6", 'Resp Depth Mean rs')
+ggsave(here::here("figures", "wordcloud_BWitems_RespDepthMeancorr_.png"), plot=p, width = 2.5, height = 3, dpi = 300, bg = 'white')
+
+p<- wordcloud_plot(cormatrix, "Resp Rate", "#ff70a6", "#70d6ff", 'Resp Rate rs')
+ggsave(here::here("figures", "wordcloud_BWitems_RespRatecorr_.png"), plot=p, width = 2.5, height = 3, dpi = 300, bg = 'white')
+
+p <- wordcloud_plot(cormatrix, "Gastric Peak Freq", "#70d6ff", "#ff70a6", 'Gastric Peak Freq rs')
+ggsave(here::here("figures", "wordcloud_BWitems_GastricPeakFreqcorr_.png"), plot=p, width = 2.5, height = 3, dpi = 300, bg = 'white')
+
+p<- wordcloud_plot(cormatrix, "Gastric Max Power", "#70d6ff","#ff70a6", 'Gastric Max Power rs')
+ggsave(here::here("figures", "wordcloud_BWitems_GastricMaxPowercorr_.png"), plot=p, width = 2.5, height = 3, dpi = 300, bg = 'white')
+
+```
+
+
+
+<!-- # Psych correlations with Mind-Wandering items -->
+<!-- ```{r} -->
+<!-- # make bar also -->
+<!-- library(tidyr) -->
+<!-- library(dplyr) -->
+
+<!-- # Correlation plots -->
+<!-- cormatrix <- t(psych::corr.test(corrdata, method = "spearman", adjust = "fdr")$r[23:24, 1:22]) -->
+<!-- p<-corbarplot(cormatrix, "Depression (MDI)", "Depression (MDI)", "ADHD (ASRS)", "#a8d2fb", "#8688bc") #"#ff70a6", "#70d6ff") #"#e7e2dc", "#b6a997" !! -->
+<!-- # Save the plot with specified dimensions -->
+<!-- ggsave(here::here("figures", "BWitems_Psychcorrelations_Depress_BootstrappedCIs.png"), plot=p, width = 9, height = 6, dpi = 300, bg = 'white') -->
+
+<!-- p <- wordcloud_plot(cormatrix, "Depression (MDI)", "#ff70a6", "#70d6ff", 'Depress rs') -->
+<!-- ggsave(here::here("figures", "wordcloud_BWitems_depresscorr.png"), plot=p, width = 2.5, height = 3, dpi = 300, bg = 'white') -->
+
+<!-- p<- wordcloud_plot(cormatrix, "ADHD (ASRS)", "#ff70a6", "#70d6ff", 'ADHD rs') -->
+<!-- ggsave(here::here("figures", "wordcloud_BWitems_ADHDcorr.png"), plot=p, width = 2.5, height = 3, dpi = 300, bg = 'white') -->
+
+
+<!-- ``` -->
+
+
+<!-- # Physio (Arousal) correlations with Mind-Wandering items -->
+<!-- ```{r} -->
+
+<!-- # Correlation plots -->
+<!-- cormatrix <- t(psych::corr.test(corrdata, method = "spearman", adjust = "fdr")$r[25:26, 1:22]) -->
+<!-- p<-corbarplot(cormatrix, "HRV RMSSD", "Heart Rate", "HRV RMSSD", "#bc86a3", "#f8c5e0") # "#636363", "#c6c6c6" !! -->
+<!-- # Save the plot with specified dimensions -->
+<!-- ggsave(here::here("figures", "BWitems_Physiocorrelations_HRV.png"), plot=p, width = 9, height = 6, dpi = 300, bg = 'white') -->
+
+<!-- p <- wordcloud_plot(cormatrix, "HRV RMSSD", "#ff70a6", "#70d6ff", 'HRV RMSSD rs') -->
+<!-- ggsave(here::here("figures", "wordcloud_BWitems_HRVcorr.png"), plot=p, width = 2.5, height = 3, dpi = 300, bg = 'white') -->
+
+<!-- p<- wordcloud_plot(cormatrix, "Heart Rate", "#70d6ff","#ff70a6", 'Heart Rate rs') -->
+<!-- ggsave(here::here("figures", "wordcloud_BWitems_HRcorr.png"), plot=p, width = 2.5, height = 3, dpi = 300, bg = 'white') -->
+
+<!-- ``` -->
+
+
+<!-- # Scatter plots -->
+<!-- ```{r} -->
+<!-- corrdata <- as.data.frame(corrdata) -->
+
+<!-- # scatterplots                       -->
+<!-- p1 = scatterplot_gg(corrdata, 'Self', 'ADHD', "#ff70a6") -->
+<!-- p2 = scatterplot_gg(corrdata, 'Heart', 'ADHD', "#ff70a6") -->
+<!-- p3 = scatterplot_gg(corrdata, 'Past', 'Depression', "#70d6ff") -->
+<!-- p4 = scatterplot_gg(corrdata, 'Heart', 'Depression', "#70d6ff") -->
+
+<!-- p5 = scatterplot_gg(corrdata, 'Past', 'Heart Rate', "#ff70a6") -->
+<!-- p6 = scatterplot_gg(corrdata, 'Skin', 'Heart Rate', "#ff70a6") -->
+<!-- p7 = scatterplot_gg(corrdata, 'Past', 'HRV RMSSD', "#70d6ff") #  scatterplot_gg(corrdata, 'Pos', 'HRV RMSSD', "#70d6ff") -->
+<!-- p8 = scatterplot_gg(corrdata, 'Skin', 'HRV RMSSD', "#70d6ff") -->
+
+
+<!-- scatter_plots_rank <- p2 + p3 + p6 + p8 + plot_layout(nrow = 1, ncol = 4) -->
+<!-- #+ p1 + p3 + p5 + p7 + plot_layout(nrow = 2, ncol = 4) -->
+<!-- scatter_plots_rank -->
+<!-- ggsave(here::here("figures", "Scatterplots_BWitems_PsychPhysio.png"), height = 3, width = 7, dpi = 300, units = "in") -->
+
+<!-- ``` -->
