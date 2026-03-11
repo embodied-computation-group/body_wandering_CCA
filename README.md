@@ -1,6 +1,6 @@
 # Uncovering the embodied dimension of the wandering mind (i.e., body-wandering)
 
-Leah Banellis, Niia Nikolova, Malthe Brændholdt, Melina Vejlø, Francesca Fardo, Jonathan Smallwood, Micah G. Allen
+Leah Banellis, Niia Nikolova, Malthe Brændholdt, Melina Vejlø, Ignacio Rebollo, Nicolas Legrand, Francesca Fardo, Jonathan Smallwood, Micah G. Allen
 
 ---
 
