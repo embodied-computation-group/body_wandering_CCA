@@ -12,13 +12,13 @@ When at rest, the mind becomes preoccupied with self-generated thoughts, commonl
 
 ## Preprint
 
-Access the preprint here: [https://www.biorxiv.org/content/10.1101/2024.10.25.620252v2.full](https://www.biorxiv.org/content/10.1101/2024.10.25.620252v2.full)
+Access the preprint here: [https://www.biorxiv.org/content/10.1101/2024.10.25.620252v3](https://www.biorxiv.org/content/10.1101/2024.10.25.620252v3)
 
 ---
 
 ## Citation
 
-> Banellis, L., Nikolova, N., Brændholdt, M., Vejlø, M., Fardo, F., Smallwood, J., & Allen, M. G. (2024). Body-wandering reveals an embodied dimension of thought with distinct affective and neural signatures. *bioRxiv*, 2024-10.
+> Banellis, L., Nikolova, N., Brændholdt, M., Vejlø, M., Rebollo, Ignacio., Legrand, Nicolas., Fardo, F., Smallwood, J., & Allen, M. G. (2026). Uncovering the embodied dimension of the wandering mind. *Proceedings of the National Academy of Sciences*.
 
 ## Figures
 
