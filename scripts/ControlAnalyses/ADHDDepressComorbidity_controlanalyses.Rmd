@@ -1,0 +1,90 @@
+---
+title: "ADHD/Depression commorbidity analysis"
+---
+
+# Control for comorbidities between Depression and ADHD
+```{r setup, include=FALSE}
+# clean slate to be sure
+rm(list = ls())
+
+# check for pacman package and install if not found
+if (!require("pacman")) install.packages("pacman")
+  pacman::p_load(readr,psych,polycor,corrplot,dplyr, tidyverse, here, circlize, BiocManager, ComplexHeatmap, gplots, gridExtra, gt, kableExtra, ggcorrplot, shape, patchwork, tidyr, ggwordcloud)
+
+rest_probes <- read.csv("~/Git/BodyWanderingCCA/data/rest_probes.csv", row.names = 1)
+
+alldata <- read.csv("~/Git/BodyWanderingCCA/data/BodyWanderingData_ids.csv", row.names = 1)
+
+# change name as requested by reviewer
+colnames(rest_probes)[colnames(rest_probes) == "Ruminate"] <- "Repetitive"
+colnames(alldata)[colnames(alldata) == "Ruminate"] <- "Repetitive"
+
+```
+
+
+```{r}
+# merge mental health data with mind/body-wandering probes
+cols = c("asrs.combined.sum", "mdi")
+corrdata <- cbind(rest_probes, alldata[ ,cols]) 
+colnames(corrdata) <- c(colnames(rest_probes), "ADHD (ASRS)", "Depression (MDI)")
+
+# partial correlation (depress controlling ADHD & vice versa)
+library(ppcor)
+library(ggplot2)
+
+items <- colnames(rest_probes)
+symptoms <- c("ADHD (ASRS)", "Depression (MDI)")
+
+# matrices: items (rows) × symptoms (cols)
+rmat <- pmat <- matrix(
+  NA, nrow = length(items), ncol = length(symptoms),
+  dimnames = list(items, symptoms)
+)
+
+for (i in seq_along(items)) {
+
+  # Item–ADHD (control Depression)
+  df1 <- corrdata[, c(items[i], "ADHD (ASRS)", "Depression (MDI)")]
+  df1 <- df1[complete.cases(df1), ]
+  if (nrow(df1) > 5) {
+    out1 <- pcor.test(df1[[1]], df1[[2]], df1[[3]], method = "spearman")
+    rmat[i, "ADHD (ASRS)"] <- out1$estimate
+    pmat[i, "ADHD (ASRS)"] <- out1$p.value
+  }
+
+  # Item–Depression (control ADHD)
+  df2 <- corrdata[, c(items[i], "Depression (MDI)", "ADHD (ASRS)")]
+  df2 <- df2[complete.cases(df2), ]
+  if (nrow(df2) > 5) {
+    out2 <- pcor.test(df2[[1]], df2[[2]], df2[[3]], method = "spearman")
+    rmat[i, "Depression (MDI)"] <- out2$estimate
+    pmat[i, "Depression (MDI)"] <- out2$p.value
+  }
+}
+
+df_plot <- reshape2::melt(rmat, varnames = c("Item", "Symptom"), value.name = "r")
+df_plot$p <- reshape2::melt(pmat)$value
+
+ggplot(df_plot, aes(Symptom, Item, fill = r)) +
+  geom_tile(color = "black") +
+  scale_fill_gradient2(
+    low = "#4a6fe3", mid = "white", high = "#d33f6a",
+    midpoint = 0, limits = c(-1, 1)
+  ) +
+  geom_text(
+    aes(label = ifelse(p < .05, sprintf("%.2f", r), "")),
+    size = 3
+  ) +
+  theme_minimal() +
+  labs(
+    title = "Item–Symptom Partial Spearman Correlations",
+    subtitle = "ADHD controlled for Depression; Depression controlled for ADHD",
+    x = NULL, y = NULL, fill = "rs"
+  )
+
+# Save the plot
+ggsave("~/Git/BodyWanderingCCA/figures/Indiv_Figures/ControlAnalyses/ADHDdepressComorbidityControl/PartialCorr_ADHDdepressItems.png", width = 7.5, height = 6, dpi = 300, bg = 'white')
+
+
+```
+

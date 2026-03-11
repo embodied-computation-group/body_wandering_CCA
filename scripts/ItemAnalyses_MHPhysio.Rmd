@@ -46,7 +46,7 @@ cormatrix_full <- function(cordata, title, subtitle) {
 
 cormatrix_selected <- function(cordata, xlabel, ylabel, xnum, ynum, savepath) {
   # Correlation plots
-  cormatrix <- t(psych::corr.test(cordata, method = "spearman", adjust = "fdr")$r[1:xnum, (xnum+1):(xnum+ynum)]) #[(xnum+1):(xnum+ynum), 1:xnum]
+  cormatrix <- t(psych::corr.test(cordata, method = "spearman", adjust = "fdr")$r[1:xnum, (xnum+1):(xnum+ynum)]) 
   cor_pvals <- t(psych::corr.test(cordata, method = "spearman", adjust = "fdr")$p[1:xnum, (xnum+1):(xnum+ynum)])
   png(filename = savepath, res = 300, height = ((ynum*2)+2), width = 40, units = "cm") # width for factors
   # Plot the correlation matrix with significance markers
