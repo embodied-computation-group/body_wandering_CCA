@@ -10,7 +10,9 @@ When at rest, the mind becomes preoccupied with self-generated thoughts, commonl
 
 ---
 
-## Preprint
+## Manuscript
+
+Access the publication here: [https://www.pnas.org/doi/full/10.1073/pnas.2520822123] (https://www.pnas.org/doi/full/10.1073/pnas.2520822123)
 
 Access the preprint here: [https://www.biorxiv.org/content/10.1101/2024.10.25.620252v3](https://www.biorxiv.org/content/10.1101/2024.10.25.620252v3)
 
@@ -18,7 +20,7 @@ Access the preprint here: [https://www.biorxiv.org/content/10.1101/2024.10.25.62
 
 ## Citation
 
-> Banellis, L., Nikolova, N., Brændholdt, M., Vejlø, M., Rebollo, Ignacio., Legrand, Nicolas., Fardo, F., Smallwood, J., & Allen, M. G. (2026). Uncovering the embodied dimension of the wandering mind. *Proceedings of the National Academy of Sciences*.
+> L. Banellis,N. Nikolova,M. Brændholdt,M. Vejlø,I. Rebollo,N. Legrand,F. Fardo,J. Smallwood, & M.G. Allen,  Uncovering the embodied dimension of the wandering mind, *Proceedings of the National Academy of Sciences*. U.S.A. 123 (13) e2520822123, https://doi.org/10.1073/pnas.2520822123 (2026).
 
 ## Figures
 
