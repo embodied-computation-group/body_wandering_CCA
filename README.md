@@ -12,7 +12,7 @@ When at rest, the mind becomes preoccupied with self-generated thoughts, commonl
 
 ## Manuscript
 
-Access the publication here: [https://www.pnas.org/doi/full/10.1073/pnas.2520822123] (https://www.pnas.org/doi/full/10.1073/pnas.2520822123)
+Access the publication here: [https://www.pnas.org/doi/full/10.1073/pnas.2520822123](https://www.pnas.org/doi/full/10.1073/pnas.2520822123)
 
 Access the preprint here: [https://www.biorxiv.org/content/10.1101/2024.10.25.620252v3](https://www.biorxiv.org/content/10.1101/2024.10.25.620252v3)
 
